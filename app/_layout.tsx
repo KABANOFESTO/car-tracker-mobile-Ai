@@ -1,12 +1,14 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack } from "expo-router";
+import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, useColorScheme, View } from "react-native";
 import Animated, { FadeOut } from "react-native-reanimated";
 import "react-native-reanimated";
+import { configureNotifications, requestNotificationPermissions } from "@/services/notificationService";
 
 // Keep the native splash visible until we're ready to show our custom one
 SplashScreen.preventAutoHideAsync();
@@ -29,6 +31,17 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
     const t = setTimeout(() => setReady(true), 1800);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    configureNotifications().catch(() => undefined);
+    requestNotificationPermissions().catch(() => undefined);
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(() => {
+      // The alert center already persists incidents, so this is enough to land the user on the incident list.
+    });
+
+    return () => subscription.remove();
   }, []);
 
   const bg = isDark ? DARK_BG : LIGHT_BG;

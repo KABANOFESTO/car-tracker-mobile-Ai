@@ -32,8 +32,8 @@ export default function FleetDashboard() {
               <Ionicons name="notifications-outline" size={20} color={FLEET_COLORS.textPrimary} />
               <View style={styles.notifBadge} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatarBtn}>
-              <Text style={styles.avatarText}>FP</Text>
+            <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push("/(tabs)/intelligence" as never)}>
+              <Ionicons name="sparkles-outline" size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -132,11 +132,6 @@ const styles = StyleSheet.create({
     backgroundColor: FLEET_COLORS.primary,
     alignItems: "center",
     justifyContent: "center"
-  },
-  avatarText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700"
   },
   mapControls: {
     position: "absolute",

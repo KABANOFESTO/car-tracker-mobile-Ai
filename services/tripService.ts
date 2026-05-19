@@ -43,6 +43,10 @@ async function loadVehicles(): Promise<PersistedVehicle[]> {
   return raw ? (JSON.parse(raw) as PersistedVehicle[]) : [];
 }
 
+function formatDate(value: Date) {
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+}
+
 async function fetchFeeds(
   channelId: number,
   readApiKey: string,
@@ -251,6 +255,28 @@ export async function getTripReplay(vehicleId: string, date: string): Promise<Tr
   const points = toTripPoints(feeds, vehicle);
   if (points.length === 0) return null;
   return buildReplay(vehicle, date, points);
+}
+
+export async function getVehicleReplaysBetween(
+  vehicleId: string,
+  startDate: string,
+  endDate: string
+): Promise<TripReplay[]> {
+  const vehicles = await loadVehicles();
+  const vehicle = vehicles.find((entry) => entry.id === vehicleId);
+  if (!vehicle) return [];
+
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  const replays: TripReplay[] = [];
+
+  for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+    const date = formatDate(cursor);
+    const replay = await getTripReplay(vehicleId, date);
+    if (replay) replays.push(replay);
+  }
+
+  return replays;
 }
 
 export async function getDriverInsights(year: number, month: number): Promise<DriverInsight[]> {

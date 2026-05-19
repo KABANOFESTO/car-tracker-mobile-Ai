@@ -1,6 +1,8 @@
 import { AlertEvent, GeofenceZone, VehicleProtectionState } from '@/constants/types';
 import { buildAlertEvents } from '@/services/alertService';
 import { getGeofenceZones, getProtectionStates } from '@/services/geofenceZoneService';
+import { acknowledgeIncident, mergeIncidentHistory } from '@/services/incidentHistoryService';
+import { notifyForIncidents } from '@/services/notificationService';
 import { useEffect, useState } from 'react';
 import { useVehicles } from './useVehicles';
 
@@ -21,10 +23,12 @@ export function useAlerts() {
       try {
         const [loadedZones, loadedProtection] = await Promise.all([getGeofenceZones(), getProtectionStates()]);
         const built = await buildAlertEvents(vehicles, loadedProtection, loadedZones);
+        const merged = await mergeIncidentHistory(built);
+        await notifyForIncidents(merged.newAlerts);
         if (cancelled) return;
         setZones(loadedZones);
         setProtectionStates(loadedProtection);
-        setAlerts(built);
+        setAlerts(merged.history);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load alerts');
       } finally {
@@ -38,5 +42,10 @@ export function useAlerts() {
     };
   }, [vehicles]);
 
-  return { alerts, zones, protectionStates, loading, error };
+  async function acknowledge(alertId: string) {
+    const next = await acknowledgeIncident(alertId);
+    setAlerts(next);
+  }
+
+  return { alerts, zones, protectionStates, loading, error, acknowledge };
 }

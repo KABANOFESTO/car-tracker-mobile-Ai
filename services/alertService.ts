@@ -1,4 +1,5 @@
 import { AlertEvent, GeofenceZone, TripReplay, Vehicle, VehicleProtectionState } from '@/constants/types';
+import { buildFleetIntelligence } from './intelligenceService';
 import { getTripReplay } from './tripService';
 
 function isWithinZoneHour(zone: GeofenceZone, timestamp: string) {
@@ -145,5 +146,21 @@ export async function buildAlertEvents(
     .filter((replay): replay is TripReplay => replay !== null)
     .flatMap((replay) => replayAlerts(replay));
 
-  return [...live, ...historical].sort((left, right) => right.timestamp.localeCompare(left.timestamp));
+  const intelligence = await buildFleetIntelligence(vehicles, zones, protectionStates);
+  const predictive = intelligence
+    .filter((insight) => insight.predictiveAlert)
+    .map((insight) => ({
+      id: createId([insight.vehicleId, 'predictive', insight.tripRiskScore.toString()]),
+      vehicleId: insight.vehicleId,
+      vehicleName: insight.vehicleName,
+      timestamp: new Date().toISOString(),
+      title: 'Predictive alert',
+      description: insight.predictiveAlert!,
+      severity: insight.tripRiskScore >= 70 ? 'critical' : 'warning',
+      category: 'system',
+      acknowledged: false,
+      relatedZoneName: insight.geofencePrediction.monitoredZoneName,
+    }) satisfies AlertEvent);
+
+  return [...live, ...historical, ...predictive].sort((left, right) => right.timestamp.localeCompare(left.timestamp));
 }

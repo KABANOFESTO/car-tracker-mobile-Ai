@@ -8,10 +8,10 @@ import { AlertCard } from '@/components/alerts/AlertCard';
 
 type Filter = 'all' | AlertCategory;
 
-const FILTERS: Filter[] = ['all', 'security', 'geofence', 'offline', 'driving'];
+const FILTERS: Filter[] = ['all', 'security', 'geofence', 'offline', 'driving', 'system'];
 
 export default function AlertsScreen() {
-  const { alerts, loading, error } = useAlerts();
+  const { alerts, loading, error, acknowledge } = useAlerts();
   const [activeFilter, setActiveFilter] = useState<Filter>('all');
 
   const filtered = useMemo(
@@ -55,7 +55,7 @@ export default function AlertsScreen() {
           <Text style={styles.empty}>No alerts in this category.</Text>
         ) : null}
         {filtered.map((alert) => (
-          <AlertCard key={alert.id} alert={alert} />
+          <AlertCard key={alert.id} alert={alert} onAcknowledge={acknowledge} />
         ))}
       </ScrollView>
     </View>

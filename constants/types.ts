@@ -3,6 +3,7 @@ export type VehicleStatus = 'moving' | 'idle' | 'offline';
 export type GeofenceZoneType = 'home' | 'parking' | 'work' | 'restricted';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 export type AlertCategory = 'geofence' | 'security' | 'offline' | 'driving' | 'system';
+export type RecommendationPriority = 'high' | 'medium' | 'low';
 
 export interface Vehicle {
   id: string;
@@ -137,6 +138,47 @@ export interface AlertEvent {
   category: AlertCategory;
   acknowledged: boolean;
   relatedZoneName?: string;
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+  occurrenceCount?: number;
+  notificationSentAt?: string | null;
+}
+
+export interface OwnerRecommendation {
+  id: string;
+  vehicleId: string;
+  title: string;
+  action: string;
+  priority: RecommendationPriority;
+}
+
+export interface VehicleForecast {
+  likelyActiveWindow: string;
+  expectedDistanceKm: number;
+  confidence: number;
+}
+
+export interface GeofencePrediction {
+  riskLevel: AlertSeverity;
+  breachProbability: number;
+  estimatedMinutesToBreach: number | null;
+  monitoredZoneName?: string;
+}
+
+export interface VehicleIntelligenceInsight {
+  vehicleId: string;
+  vehicleName: string;
+  suspiciousMovementScore: number;
+  tripRiskScore: number;
+  anomalyScore: number;
+  driverPatternScore: number;
+  liveSummary: string;
+  aiSummary: string;
+  suspiciousReasons: string[];
+  predictiveAlert?: string;
+  geofencePrediction: GeofencePrediction;
+  forecast: VehicleForecast;
+  recommendations: OwnerRecommendation[];
 }
 
 export interface VehicleStats {

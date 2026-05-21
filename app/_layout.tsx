@@ -9,6 +9,7 @@ import { StyleSheet, Text, useColorScheme, View } from "react-native";
 import Animated, { FadeOut } from "react-native-reanimated";
 import "react-native-reanimated";
 import { configureNotifications, requestNotificationPermissions } from "@/services/notificationService";
+import { useBackendSync } from "@/hooks/useBackendSync";
 
 // Keep the native splash visible until we're ready to show our custom one
 SplashScreen.preventAutoHideAsync();
@@ -25,6 +26,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme !== "light";
   const [ready, setReady] = useState(false);
+  useBackendSync();
 
   useEffect(() => {
     // Immediately swap from native splash to our JS splash (seamless because same bg color)

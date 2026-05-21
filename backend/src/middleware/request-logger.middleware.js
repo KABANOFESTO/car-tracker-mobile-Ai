@@ -1,3 +1,5 @@
+const { writeRequestLog } = require('../services/request-log.service');
+
 function requestLogger(request, response, next) {
   const startedAt = Date.now();
 
@@ -14,6 +16,7 @@ function requestLogger(request, response, next) {
     };
 
     console.log('[request]', JSON.stringify(meta));
+    writeRequestLog(meta).catch(() => undefined);
   });
 
   next();

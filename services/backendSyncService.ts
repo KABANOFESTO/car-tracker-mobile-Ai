@@ -4,16 +4,20 @@ import { Platform } from 'react-native';
 import { GeofenceZone, Vehicle, VehicleProtectionState } from '@/constants/types';
 
 const BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, '') ?? '';
+const BACKEND_API_KEY = process.env.EXPO_PUBLIC_BACKEND_API_KEY ?? '';
 
 function canSync() {
-  return BACKEND_BASE_URL.length > 0;
+  return BACKEND_BASE_URL.length > 0 && BACKEND_API_KEY.length > 0;
 }
 
 async function postJson(path: string, body: unknown) {
   if (!canSync()) return null;
   const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-mobile-api-key': BACKEND_API_KEY,
+    },
     body: JSON.stringify(body),
   });
   if (!response.ok) {

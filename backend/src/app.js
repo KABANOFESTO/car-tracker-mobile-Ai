@@ -11,7 +11,7 @@ function createApp() {
 
   app.use((error, request, response, next) => {
     console.error('[backend]', error);
-    response.status(500).json({
+    response.status(error.statusCode || 500).json({
       ok: false,
       error: error.message || 'Internal server error',
     });

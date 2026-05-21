@@ -1,10 +1,12 @@
 const env = require('./config/env');
 const { connectDatabase } = require('./config/database');
 const { createApp } = require('./app');
+const { ensureAdminSeeded } = require('./services/auth.service');
 const { startDispatcher } = require('./services/dispatcher.service');
 
 async function startServer() {
   await connectDatabase();
+  await ensureAdminSeeded();
   const app = createApp();
 
   app.listen(env.port, async () => {

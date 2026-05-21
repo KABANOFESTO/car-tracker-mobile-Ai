@@ -1,0 +1,19 @@
+{
+  "name": "fleetpulse-backend",
+  "version": "1.0.0",
+  "description": "FleetPulse incident dispatcher and push notification backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "mongoose": "^8.19.3"
+  }
+}

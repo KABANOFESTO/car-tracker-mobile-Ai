@@ -71,3 +71,14 @@ export async function setVehicleProtectionState(
   await AsyncStorage.setItem(PROTECTION_KEY, JSON.stringify(states));
   return states;
 }
+
+export async function replaceGeofenceZones(zones: GeofenceZone[]): Promise<GeofenceZone[]> {
+  const sorted = sortZones(zones);
+  await AsyncStorage.setItem(ZONES_KEY, JSON.stringify(sorted));
+  return sorted;
+}
+
+export async function replaceProtectionStates(states: VehicleProtectionState[]): Promise<VehicleProtectionState[]> {
+  await AsyncStorage.setItem(PROTECTION_KEY, JSON.stringify(states));
+  return states;
+}

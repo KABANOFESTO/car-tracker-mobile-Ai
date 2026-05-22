@@ -1,1 +1,1 @@
-export { subscribeVehicles, addVehicle, updateVehicle, removeVehicle, setSpeedThreshold } from './thingspeakService';
+export { subscribeVehicles, addVehicle, updateVehicle, removeVehicle, replaceVehicles, setSpeedThreshold } from './thingspeakService';

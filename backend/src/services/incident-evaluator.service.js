@@ -28,14 +28,26 @@ function activeZoneFor(vehicle, zones) {
   );
 }
 
+function isOutsideActiveZone(currentPoint, activeZone) {
+  if (!activeZone) return currentPoint.isOutsideFence;
+  const distance = metersBetween(
+    currentPoint.latitude,
+    currentPoint.longitude,
+    activeZone.latitude,
+    activeZone.longitude
+  );
+  return distance > activeZone.radius;
+}
+
 function buildIncidentsForVehicle(vehicle, currentPoint, previousPoint, activeZone, protectionStates, todayPoints) {
   const incidents = [];
   const protection = protectionStates.find((entry) => entry.vehicleId === vehicle.id);
   const ageMinutes = Math.round((Date.now() - new Date(currentPoint.timestamp).getTime()) / 60000);
   const currentHour = new Date(currentPoint.timestamp).getHours();
   const overspeedCount = todayPoints.filter((point) => point.speed >= 80).length;
+  const outsideZone = isOutsideActiveZone(currentPoint, activeZone);
 
-  if (currentPoint.isOutsideFence) {
+  if (outsideZone) {
     incidents.push({
       incidentKey: createId([vehicle.id, currentPoint.timestamp.slice(0, 16), 'geofence']),
       vehicleId: vehicle.id,

@@ -1,4 +1,9 @@
 const { AppError } = require('../utils/errors');
+const VEHICLE_TYPES = ['Car', 'Truck', 'Van', 'Motorcycle', 'Bus', 'Other'];
+const VEHICLE_STATUSES = ['moving', 'idle', 'offline'];
+const GEOFENCE_TYPES = ['home', 'parking', 'work', 'restricted'];
+const ALERT_SEVERITIES = ['critical', 'warning', 'info'];
+const ALERT_CATEGORIES = ['geofence', 'security', 'offline', 'driving', 'system'];
 
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -6,6 +11,22 @@ function isNonEmptyString(value) {
 
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isIsoTimestamp(value) {
+  return isNonEmptyString(value) && !Number.isNaN(Date.parse(value));
+}
+
+function validateEnum(value, allowed, fieldPath) {
+  if (!allowed.includes(value)) {
+    throw new AppError(400, `${fieldPath} must be one of: ${allowed.join(', ')}`);
+  }
+}
+
+function validateCoordinate(value, min, max, fieldPath) {
+  if (!isFiniteNumber(value) || value < min || value > max) {
+    throw new AppError(400, `${fieldPath} must be between ${min} and ${max}`);
+  }
 }
 
 function validateVehicle(vehicle, index) {
@@ -23,21 +44,32 @@ function validateVehicle(vehicle, index) {
   if (!isFiniteNumber(vehicle.channelId) || vehicle.channelId <= 0) {
     throw new AppError(400, `vehicles[${index}].channelId must be a positive number`);
   }
+  validateEnum(vehicle.type, VEHICLE_TYPES, `vehicles[${index}].type`);
+  validateEnum(vehicle.status, VEHICLE_STATUSES, `vehicles[${index}].status`);
+  if (!isIsoTimestamp(vehicle.lastSeen)) {
+    throw new AppError(400, `vehicles[${index}].lastSeen must be an ISO timestamp`);
+  }
 
   if (!vehicle.location || typeof vehicle.location !== 'object') {
     throw new AppError(400, `vehicles[${index}].location must be an object`);
   }
 
-  for (const key of ['latitude', 'longitude']) {
-    if (!isFiniteNumber(vehicle.location[key])) {
-      throw new AppError(400, `vehicles[${index}].location.${key} must be a finite number`);
-    }
-  }
+  validateCoordinate(vehicle.location.latitude, -90, 90, `vehicles[${index}].location.latitude`);
+  validateCoordinate(vehicle.location.longitude, -180, 180, `vehicles[${index}].location.longitude`);
 
   for (const key of ['speed', 'direction', 'altitude', 'satellites', 'hdop']) {
     if (!isFiniteNumber(vehicle[key])) {
       throw new AppError(400, `vehicles[${index}].${key} must be a finite number`);
     }
+  }
+  if (vehicle.direction < 0 || vehicle.direction > 360) {
+    throw new AppError(400, `vehicles[${index}].direction must be between 0 and 360`);
+  }
+  if (vehicle.satellites < 0) {
+    throw new AppError(400, `vehicles[${index}].satellites must be 0 or greater`);
+  }
+  if (vehicle.hdop < 0) {
+    throw new AppError(400, `vehicles[${index}].hdop must be 0 or greater`);
   }
 
   if (typeof vehicle.isOutsideFence !== 'boolean') {
@@ -55,16 +87,20 @@ function validateZone(zone, index) {
       throw new AppError(400, `zones[${index}].${key} must be a non-empty string`);
     }
   }
+  validateEnum(zone.type, GEOFENCE_TYPES, `zones[${index}].type`);
 
-  for (const key of ['latitude', 'longitude', 'radius']) {
-    if (!isFiniteNumber(zone[key])) {
-      throw new AppError(400, `zones[${index}].${key} must be a finite number`);
-    }
+  validateCoordinate(zone.latitude, -90, 90, `zones[${index}].latitude`);
+  validateCoordinate(zone.longitude, -180, 180, `zones[${index}].longitude`);
+  if (!isFiniteNumber(zone.radius) || zone.radius <= 0) {
+    throw new AppError(400, `zones[${index}].radius must be a positive number`);
   }
 
   for (const key of ['activeFromHour', 'activeToHour']) {
     if (zone[key] != null && !isFiniteNumber(zone[key])) {
       throw new AppError(400, `zones[${index}].${key} must be a number or null`);
+    }
+    if (zone[key] != null && (zone[key] < 0 || zone[key] > 23)) {
+      throw new AppError(400, `zones[${index}].${key} must be between 0 and 23`);
     }
   }
 }
@@ -85,6 +121,20 @@ function validateProtectionState(state, index) {
   if (state.armedAt != null && typeof state.armedAt !== 'string') {
     throw new AppError(400, `protectionStates[${index}].armedAt must be a string or null`);
   }
+  if (state.armedAt != null && !isIsoTimestamp(state.armedAt)) {
+    throw new AppError(400, `protectionStates[${index}].armedAt must be an ISO timestamp`);
+  }
+}
+
+function validateNoDuplicates(items, keyResolver, label) {
+  const seen = new Set();
+  items.forEach((item, index) => {
+    const key = keyResolver(item);
+    if (seen.has(key)) {
+      throw new AppError(400, `${label} contains a duplicate at index ${index}`);
+    }
+    seen.add(key);
+  });
 }
 
 function validateSyncStatePayload(request, response, next) {
@@ -106,6 +156,12 @@ function validateSyncStatePayload(request, response, next) {
     body.vehicles.forEach(validateVehicle);
     body.zones.forEach(validateZone);
     body.protectionStates.forEach(validateProtectionState);
+    validateNoDuplicates(body.vehicles, (item) => item.id, 'vehicles');
+    validateNoDuplicates(body.zones, (item) => item.id, 'zones');
+    validateNoDuplicates(body.protectionStates, (item) => item.vehicleId, 'protectionStates');
+    if (body.syncedAt != null && !isIsoTimestamp(body.syncedAt)) {
+      throw new AppError(400, 'syncedAt must be an ISO timestamp');
+    }
   } catch (error) {
     return next(error);
   }
@@ -130,6 +186,10 @@ function validatePushTokenPayload(request, response, next) {
 
   if (body.projectId != null && typeof body.projectId !== 'string') {
     return next(new AppError(400, 'projectId must be a string or null'));
+  }
+
+  if (body.registeredAt != null && !isIsoTimestamp(body.registeredAt)) {
+    return next(new AppError(400, 'registeredAt must be an ISO timestamp'));
   }
 
   return next();
@@ -185,9 +245,51 @@ function validateUpdateUserPayload(request, response, next) {
   return next();
 }
 
+function validateRefreshPayload(request, response, next) {
+  const body = request.body || {};
+  if (!isNonEmptyString(body.refreshToken)) {
+    return next(new AppError(400, 'refreshToken must be a non-empty string'));
+  }
+  return next();
+}
+
+function validateChangePasswordPayload(request, response, next) {
+  const body = request.body || {};
+  if (!isNonEmptyString(body.currentPassword)) {
+    return next(new AppError(400, 'currentPassword is required'));
+  }
+  if (!isNonEmptyString(body.newPassword) || body.newPassword.length < 8) {
+    return next(new AppError(400, 'newPassword must be at least 8 characters'));
+  }
+  return next();
+}
+
+function validateForgotPasswordPayload(request, response, next) {
+  const body = request.body || {};
+  if (!isNonEmptyString(body.email) || !body.email.includes('@')) {
+    return next(new AppError(400, 'email must be a valid email string'));
+  }
+  return next();
+}
+
+function validateResetPasswordPayload(request, response, next) {
+  const body = request.body || {};
+  if (!isNonEmptyString(body.resetToken)) {
+    return next(new AppError(400, 'resetToken is required'));
+  }
+  if (!isNonEmptyString(body.newPassword) || body.newPassword.length < 8) {
+    return next(new AppError(400, 'newPassword must be at least 8 characters'));
+  }
+  return next();
+}
+
 module.exports = {
   validateSyncStatePayload,
   validatePushTokenPayload,
   validateCreateUserPayload,
   validateUpdateUserPayload,
+  validateRefreshPayload,
+  validateChangePasswordPayload,
+  validateForgotPasswordPayload,
+  validateResetPasswordPayload,
 };

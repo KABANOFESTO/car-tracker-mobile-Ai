@@ -1,28 +1,33 @@
 # FleetPulse Backend API
 
-This backend serves three responsibilities:
+This backend is structured for the actual project flow:
 
-1. Mobile app fleet-state sync using a shared mobile API key
-2. Admin/owner access using JWT authentication
-3. Backend dispatcher polling ThingSpeak and sending Expo push notifications
+1. owner/admin authentication with JWT access tokens and refresh tokens
+2. owner-scoped fleet state sync from the mobile app
+3. owner-scoped incidents and push notification dispatch
+4. audit, request, and error logging for operations
 
 ## Environment
 
-Set these in [`.env`](./.env):
+Set these values in [`backend/.env`](./.env):
 
 ```env
 PORT=4000
 NODE_ENV=development
 MONGO_URI=mongodb://127.0.0.1:27017/fleetpulse
+CORS_ORIGINS=http://localhost:8081,exp://127.0.0.1:8081
 MOBILE_API_KEY=replace_with_shared_mobile_api_key
 JWT_SECRET=replace_with_long_random_jwt_secret
-JWT_EXPIRES_IN=7d
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=change-this-password
 ADMIN_NAME=Fleet Admin
 THINGSPEAK_BASE_URL=https://api.thingspeak.com
 DISPATCHER_POLL_INTERVAL_MS=30000
 EXPO_PUSH_API_URL=https://exp.host/--/api/v2/push/send
+PASSWORD_RESET_TOKEN_TTL_MINUTES=30
+LOG_RETENTION_DAYS=30
 ```
 
 ## Start
@@ -35,22 +40,29 @@ npm start
 
 ## Auth model
 
-- Mobile sync routes use header: `x-mobile-api-key`
-- Human/admin routes use header: `Authorization: Bearer <jwt>`
+- mobile sync routes require:
+  - `x-mobile-api-key`
+  - `Authorization: Bearer <access-token>`
+- human/admin routes require:
+  - `Authorization: Bearer <access-token>`
 
-## Endpoints
+## Main endpoints
 
 ### Health
 
-`GET /health`
+- `GET /health`
 
 ### Auth
 
-#### Login
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
+- `POST /api/auth/change-password`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
 
-`POST /api/auth/login`
-
-Body:
+Login request:
 
 ```json
 {
@@ -59,12 +71,13 @@ Body:
 }
 ```
 
-Response:
+Login response:
 
 ```json
 {
   "ok": true,
-  "token": "<jwt>",
+  "accessToken": "<jwt>",
+  "refreshToken": "<opaque-refresh-token>",
   "user": {
     "id": "682ddc...",
     "name": "Fleet Admin",
@@ -74,115 +87,38 @@ Response:
 }
 ```
 
-#### Current user
-
-`GET /api/auth/me`
-
-Headers:
-
-```http
-Authorization: Bearer <jwt>
-```
-
-### Incidents
-
-#### List incidents
-
-`GET /api/incidents`
-
-Headers:
-
-```http
-Authorization: Bearer <jwt>
-```
-
-### Admin user management
-
-#### List users
-
-`GET /api/admin/users`
-
-Headers:
-
-```http
-Authorization: Bearer <jwt>
-```
-
-#### Create owner/admin
-
-`POST /api/admin/users`
-
-Headers:
-
-```http
-Authorization: Bearer <jwt>
-Content-Type: application/json
-```
-
-Body:
+Refresh request:
 
 ```json
 {
-  "name": "Owner One",
-  "email": "owner1@example.com",
-  "password": "Owner12345",
-  "role": "owner",
-  "active": true
+  "refreshToken": "<opaque-refresh-token>"
 }
 ```
 
-#### Update owner/admin
-
-`PATCH /api/admin/users/:userId`
-
-Headers:
-
-```http
-Authorization: Bearer <jwt>
-Content-Type: application/json
-```
-
-Body example:
+Change-password request:
 
 ```json
 {
-  "name": "Owner One Updated",
-  "role": "owner",
-  "active": true,
-  "password": "Owner12345New"
+  "currentPassword": "OldPassword123!",
+  "newPassword": "NewPassword123!"
 }
 ```
 
-### Admin logs
+### Owner fleet state
 
-#### Request logs
+- `GET /api/fleet-state`
+- `POST /api/sync-state`
+- `POST /api/register-push-token`
 
-`GET /api/admin/logs/requests`
-
-#### Audit logs
-
-`GET /api/admin/logs/audit`
-
-Headers for both:
-
-```http
-Authorization: Bearer <jwt>
-```
-
-### Mobile app sync
-
-#### Sync state
-
-`POST /api/sync-state`
-
-Headers:
+Sync headers:
 
 ```http
 x-mobile-api-key: replace_with_shared_mobile_api_key
+Authorization: Bearer <jwt>
 Content-Type: application/json
 ```
 
-Body sample:
+Sync body:
 
 ```json
 {
@@ -203,7 +139,7 @@ Body sample:
       "satellites": 8,
       "hdop": 1.8,
       "isOutsideFence": false,
-      "lastSeen": "2026-05-21T12:42:10.000Z"
+      "lastSeen": "2026-05-22T12:42:10.000Z"
     }
   ],
   "zones": [
@@ -223,86 +159,82 @@ Body sample:
     {
       "vehicleId": "v1747150400000",
       "armed": true,
-      "armedAt": "2026-05-21T20:55:00.000Z"
+      "armedAt": "2026-05-22T20:55:00.000Z"
     }
   ],
-  "syncedAt": "2026-05-21T12:42:10.000Z"
+  "syncedAt": "2026-05-22T12:42:10.000Z"
 }
 ```
 
-#### Register Expo push token
+### Incidents
 
-`POST /api/register-push-token`
+- `GET /api/incidents`
+- `PATCH /api/incidents/:incidentId/acknowledge`
 
-Headers:
+Supported list filters:
 
-```http
-x-mobile-api-key: replace_with_shared_mobile_api_key
-Content-Type: application/json
-```
+- `page`
+- `limit`
+- `vehicleId`
+- `severity`
+- `category`
+- `acknowledged`
+- `startDate`
+- `endDate`
 
-Body:
+### Admin APIs
+
+- `GET /api/admin/users`
+- `POST /api/admin/users`
+- `PATCH /api/admin/users/:userId`
+- `GET /api/admin/logs/requests`
+- `GET /api/admin/logs/audit`
+- `GET /api/admin/logs/errors`
+- `POST /api/dispatcher/run`
+
+Create-user body:
 
 ```json
 {
-  "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
-  "platform": "android",
-  "projectId": "5ea2c560-558d-42b0-a23e-fdc6f72a33e8",
-  "registeredAt": "2026-05-21T12:42:10.000Z"
+  "name": "Owner One",
+  "email": "owner1@example.com",
+  "password": "Owner12345",
+  "role": "owner",
+  "active": true
 }
 ```
 
-### Dispatcher run
-
-`POST /api/dispatcher/run`
-
-Headers:
-
-```http
-Authorization: Bearer <jwt>
-```
-
-Admin only.
-
 ## Postman setup
 
-Create two Postman environments:
-
-### 1. Admin API
+### Admin API environment
 
 - `baseUrl` = `http://localhost:4000`
-- `jwt` = paste token after login
+- `jwt` = paste the `accessToken`
+- `refreshToken` = paste the `refreshToken`
 
-Use header:
+Headers:
 
 ```http
 Authorization: Bearer {{jwt}}
 ```
 
-### 2. Mobile Sync
+### Mobile sync environment
 
 - `baseUrl` = `http://localhost:4000`
 - `mobileApiKey` = same value as `MOBILE_API_KEY`
+- `jwt` = paste the owner `accessToken`
 
-Use header:
+Headers:
 
 ```http
 x-mobile-api-key: {{mobileApiKey}}
+Authorization: Bearer {{jwt}}
 ```
 
-## Audit coverage
+## Operational notes
 
-Current audit events are written for:
-
-- `user.create`
-- `user.update`
-
-Request logs are written for every request with:
-
-- path
-- method
-- status code
-- duration
-- IP
-- user-agent
-- user id when authenticated
+- incidents are owner-scoped
+- push tokens are owner-scoped
+- fleet state is owner-scoped
+- request, audit, and error logs are retained according to `LOG_RETENTION_DAYS`
+- password reset token delivery still needs email/SMS infrastructure in production

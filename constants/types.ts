@@ -188,3 +188,40 @@ export interface VehicleStats {
   offline: number;
   fenceBreachCount: number;
 }
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'owner';
+  active?: boolean;
+}
+
+export interface AuthSession {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+}
+
+export interface BackendIncidentList {
+  items: AlertEvent[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  summary: {
+    total: number;
+    unacknowledged: number;
+    acknowledged: number;
+  };
+}
+
+export interface BackendSyncStatus {
+  enabled: boolean;
+  authenticated: boolean;
+  lastSyncAt: string | null;
+  lastError: string | null;
+  isSyncing: boolean;
+}

@@ -5,6 +5,7 @@ const requestLogSchema = new Schema(
     method: { type: String, required: true },
     path: { type: String, required: true, index: true },
     statusCode: { type: Number, required: true, index: true },
+    severity: { type: String, required: true, enum: ['info', 'warning', 'error'], default: 'info', index: true },
     durationMs: { type: Number, required: true },
     ip: { type: String, default: null },
     userAgent: { type: String, default: '' },

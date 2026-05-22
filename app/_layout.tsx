@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -8,6 +8,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, useColorScheme, View } from "react-native";
 import Animated, { FadeOut } from "react-native-reanimated";
 import "react-native-reanimated";
+import { AuthSessionProvider } from "@/hooks/useAuthSession";
 import { configureNotifications, requestNotificationPermissions } from "@/services/notificationService";
 import { useBackendSync } from "@/hooks/useBackendSync";
 
@@ -22,7 +23,7 @@ export const unstable_settings = {
   anchor: "(tabs)"
 };
 
-export default function RootLayout() {
+function RootLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme !== "light";
   const [ready, setReady] = useState(false);
@@ -39,8 +40,17 @@ export default function RootLayout() {
     configureNotifications().catch(() => undefined);
     requestNotificationPermissions().catch(() => undefined);
 
-    const subscription = Notifications.addNotificationResponseReceivedListener(() => {
-      // The alert center already persists incidents, so this is enough to land the user on the incident list.
+    const subscription = Notifications.addNotificationResponseReceivedListener((event) => {
+      const vehicleId = typeof event.notification.request.content.data?.vehicleId === "string"
+        ? event.notification.request.content.data.vehicleId
+        : null;
+
+      if (vehicleId) {
+        router.push(`/vehicle/${vehicleId}` as never);
+        return;
+      }
+
+      router.push("/alerts" as never);
     });
 
     return () => subscription.remove();
@@ -58,6 +68,36 @@ export default function RootLayout() {
           options={{
             headerShown: true,
             title: "Connect ThingSpeak Channel",
+            headerStyle: { backgroundColor: "#0B0E27" },
+            headerTintColor: "#FFFFFF",
+            headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+          }}
+        />
+        <Stack.Screen
+          name="login"
+          options={{
+            headerShown: true,
+            title: "Sign In",
+            headerStyle: { backgroundColor: "#0B0E27" },
+            headerTintColor: "#FFFFFF",
+            headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+          }}
+        />
+        <Stack.Screen
+          name="admin/users"
+          options={{
+            headerShown: true,
+            title: "User Access",
+            headerStyle: { backgroundColor: "#0B0E27" },
+            headerTintColor: "#FFFFFF",
+            headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+          }}
+        />
+        <Stack.Screen
+          name="admin/logs"
+          options={{
+            headerShown: true,
+            title: "Operations Logs",
             headerStyle: { backgroundColor: "#0B0E27" },
             headerTintColor: "#FFFFFF",
             headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
@@ -109,6 +149,14 @@ export default function RootLayout() {
         </Animated.View>
       )}
     </ThemeProvider>
+  );
+}
+
+export default function AppRoot() {
+  return (
+    <AuthSessionProvider>
+      <RootLayout />
+    </AuthSessionProvider>
   );
 }
 

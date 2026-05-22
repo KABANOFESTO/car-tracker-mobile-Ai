@@ -2,7 +2,8 @@ const { Schema, model } = require('mongoose');
 
 const pushTokenSchema = new Schema(
   {
-    token: { type: String, required: true, unique: true, index: true },
+    ownerUserId: { type: String, required: true, index: true },
+    token: { type: String, required: true, index: true },
     platform: { type: String, default: 'unknown' },
     projectId: { type: String, default: null },
     registeredAt: { type: Date, default: Date.now },
@@ -11,5 +12,7 @@ const pushTokenSchema = new Schema(
   },
   { timestamps: true }
 );
+
+pushTokenSchema.index({ ownerUserId: 1, token: 1 }, { unique: true });
 
 module.exports = model('PushToken', pushTokenSchema);

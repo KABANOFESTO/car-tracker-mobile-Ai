@@ -1,10 +1,24 @@
-const { listIncidents } = require('../services/incident.service');
+const { listIncidents, acknowledgeIncident } = require('../services/incident.service');
 const { runDispatcherCycle } = require('../services/dispatcher.service');
 const { writeAuditLog } = require('../services/audit-log.service');
 
 async function listIncidentsController(request, response) {
-  const incidents = await listIncidents();
-  response.json({ incidents });
+  const result = await listIncidents(request.user, request.query || {});
+  response.json({ ok: true, ...result });
+}
+
+async function acknowledgeIncidentController(request, response) {
+  const incident = await acknowledgeIncident(request.user, request.params.incidentId);
+  await writeAuditLog({
+    actorUserId: request.user._id.toString(),
+    actorEmail: request.user.email,
+    action: 'incident.acknowledge',
+    targetType: 'incident',
+    targetId: incident.incidentKey,
+    ip: request.ip,
+    metadata: { ownerUserId: incident.ownerUserId },
+  });
+  response.json({ ok: true, incident });
 }
 
 async function runDispatcherController(request, response) {
@@ -21,4 +35,4 @@ async function runDispatcherController(request, response) {
   response.json(result);
 }
 
-module.exports = { listIncidentsController, runDispatcherController };
+module.exports = { listIncidentsController, acknowledgeIncidentController, runDispatcherController };

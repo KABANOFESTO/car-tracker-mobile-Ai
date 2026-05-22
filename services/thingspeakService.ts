@@ -233,3 +233,12 @@ export async function removeVehicle(id: string): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   notify();
 }
+
+export async function replaceVehicles(nextVehicles: PersistedVehicle[]): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextVehicles));
+  vehicleList = nextVehicles.map(offlineDefaults);
+  notify();
+  if (vehicleList.length > 0) {
+    pollAll().catch(() => undefined);
+  }
+}

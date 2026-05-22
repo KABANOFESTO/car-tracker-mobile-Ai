@@ -15,6 +15,16 @@ function createId(parts: string[]) {
   return parts.join(':').replace(/\s+/g, '-').toLowerCase();
 }
 
+function metersBetween(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const earthRadius = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function liveAlerts(
   vehicles: Vehicle[],
   protectionStates: VehicleProtectionState[],
@@ -30,8 +40,16 @@ function liveAlerts(
       (zone) => (zone.type === 'home' || zone.type === 'parking') && isWithinZoneHour(zone, vehicle.lastSeen)
     );
     const ageMinutes = Math.round((now - new Date(vehicle.lastSeen).getTime()) / 60000);
+    const outsideZone = activeHomeOrParkingZone
+      ? metersBetween(
+          vehicle.location.latitude,
+          vehicle.location.longitude,
+          activeHomeOrParkingZone.latitude,
+          activeHomeOrParkingZone.longitude
+        ) > activeHomeOrParkingZone.radius
+      : vehicle.isOutsideFence;
 
-    if (vehicle.isOutsideFence) {
+    if (outsideZone) {
       alerts.push({
         id: createId([vehicle.id, vehicle.lastSeen, 'geofence']),
         vehicleId: vehicle.id,

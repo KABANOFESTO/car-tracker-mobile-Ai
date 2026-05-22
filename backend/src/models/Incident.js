@@ -2,7 +2,8 @@ const { Schema, model } = require('mongoose');
 
 const incidentSchema = new Schema(
   {
-    incidentKey: { type: String, required: true, unique: true, index: true },
+    ownerUserId: { type: String, required: true, index: true },
+    incidentKey: { type: String, required: true, index: true },
     vehicleId: { type: String, required: true, index: true },
     vehicleName: { type: String, required: true },
     timestamp: { type: Date, required: true, index: true },
@@ -20,5 +21,7 @@ const incidentSchema = new Schema(
   },
   { timestamps: true }
 );
+
+incidentSchema.index({ ownerUserId: 1, incidentKey: 1 }, { unique: true });
 
 module.exports = model('Incident', incidentSchema);

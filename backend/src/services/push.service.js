@@ -10,8 +10,8 @@ function shouldNotify(incident) {
   );
 }
 
-async function sendPushNotifications(incidents) {
-  const pushTokens = await listActivePushTokens();
+async function sendPushNotifications(ownerUserId, incidents) {
+  const pushTokens = await listActivePushTokens(ownerUserId);
   if (pushTokens.length === 0) return [];
 
   const notifyCandidates = incidents.filter(shouldNotify);
@@ -47,7 +47,7 @@ async function sendPushNotifications(incidents) {
     throw new Error(`Expo push API ${response.status}`);
   }
 
-  await markIncidentsNotified(notifyCandidates.map((incident) => incident.incidentKey));
+  await markIncidentsNotified(ownerUserId, notifyCandidates.map((incident) => incident.incidentKey));
   return notifyCandidates;
 }
 

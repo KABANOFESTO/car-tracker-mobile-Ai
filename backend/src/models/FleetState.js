@@ -51,7 +51,7 @@ const protectionStateSchema = new Schema(
 
 const fleetStateSchema = new Schema(
   {
-    key: { type: String, required: true, unique: true, default: 'primary' },
+    ownerUserId: { type: String, required: true, unique: true, index: true },
     vehicles: { type: [vehicleSchema], default: [] },
     zones: { type: [geofenceZoneSchema], default: [] },
     protectionStates: { type: [protectionStateSchema], default: [] },

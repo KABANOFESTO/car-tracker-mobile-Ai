@@ -1,14 +1,20 @@
 const { listRequestLogs } = require('../services/request-log.service');
 const { listAuditLogs } = require('../services/audit-log.service');
+const { listErrorLogs } = require('../services/error-log.service');
 
 async function listRequestLogsController(request, response) {
-  const logs = await listRequestLogs();
-  response.json({ ok: true, logs });
+  const result = await listRequestLogs(request.query || {});
+  response.json({ ok: true, ...result });
 }
 
 async function listAuditLogsController(request, response) {
-  const logs = await listAuditLogs();
-  response.json({ ok: true, logs });
+  const result = await listAuditLogs(request.query || {});
+  response.json({ ok: true, ...result });
 }
 
-module.exports = { listRequestLogsController, listAuditLogsController };
+async function listErrorLogsController(request, response) {
+  const result = await listErrorLogs(request.query || {});
+  response.json({ ok: true, ...result });
+}
+
+module.exports = { listRequestLogsController, listAuditLogsController, listErrorLogsController };

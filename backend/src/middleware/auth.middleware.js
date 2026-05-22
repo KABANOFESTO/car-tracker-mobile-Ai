@@ -29,6 +29,13 @@ async function requireJwtAuth(request, response, next) {
   }
 }
 
+function requireAuthenticatedMobileClient(request, response, next) {
+  requireMobileApiKey(request, response, (error) => {
+    if (error) return next(error);
+    return requireJwtAuth(request, response, next);
+  });
+}
+
 function requireRole(...roles) {
   return (request, response, next) => {
     if (!request.user || !roles.includes(request.user.role)) {
@@ -38,4 +45,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireMobileApiKey, requireJwtAuth, requireRole };
+module.exports = { requireMobileApiKey, requireJwtAuth, requireAuthenticatedMobileClient, requireRole };

@@ -1,14 +1,15 @@
 const PushToken = require('../models/PushToken');
 
-async function registerPushToken(payload) {
+async function registerPushToken(ownerUserId, payload) {
   if (!payload.token) {
     throw new Error('Push token is required');
   }
 
   const token = await PushToken.findOneAndUpdate(
-    { token: payload.token },
+    { ownerUserId, token: payload.token },
     {
       $set: {
+        ownerUserId,
         platform: payload.platform || 'unknown',
         projectId: payload.projectId || null,
         registeredAt: payload.registeredAt ? new Date(payload.registeredAt) : new Date(),
@@ -22,8 +23,8 @@ async function registerPushToken(payload) {
   return token;
 }
 
-async function listActivePushTokens() {
-  return PushToken.find({ active: true }).lean();
+async function listActivePushTokens(ownerUserId) {
+  return PushToken.find({ ownerUserId, active: true }).lean();
 }
 
 module.exports = { registerPushToken, listActivePushTokens };

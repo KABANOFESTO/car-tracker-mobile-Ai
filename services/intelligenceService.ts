@@ -109,7 +109,7 @@ function buildGeofencePrediction(
   );
   const boundaryGapMeters = activeZone.radius - distanceFromCenter;
 
-  if (boundaryGapMeters <= 0 || vehicle.isOutsideFence) {
+  if (boundaryGapMeters <= 0) {
     return {
       riskLevel: 'critical',
       breachProbability: 0.99,

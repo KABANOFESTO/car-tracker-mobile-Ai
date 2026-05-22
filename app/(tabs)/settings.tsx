@@ -10,7 +10,10 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { FLEET_COLORS } from '@/constants/theme';
+import { useAuthSession } from '@/hooks/useAuthSession';
+import { useBackendSyncStatus } from '@/hooks/useBackendSyncStatus';
 
 interface SettingRow {
   icon: string;
@@ -20,7 +23,6 @@ interface SettingRow {
 }
 
 const SETTINGS: SettingRow[] = [
-  { icon: 'person-outline', label: 'Account', value: 'fleet@example.com' },
   { icon: 'notifications-outline', label: 'Notifications', value: 'Enabled' },
   { icon: 'map-outline', label: 'Default Map Style', value: 'Dark' },
   { icon: 'refresh-outline', label: 'Update Interval', value: '15 seconds' },
@@ -34,9 +36,9 @@ const ABOUT: SettingRow[] = [
   { icon: 'help-circle-outline', label: 'Support' },
 ];
 
-function SettingItem({ icon, label, value }: SettingRow) {
+function SettingItem({ icon, label, value, onPress }: SettingRow) {
   return (
-    <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.rowIcon}>
         <Ionicons name={icon as any} size={18} color={FLEET_COLORS.primary} />
       </View>
@@ -50,6 +52,56 @@ function SettingItem({ icon, label, value }: SettingRow) {
 }
 
 export default function SettingsScreen() {
+  const { user, backendConfigured, signOut } = useAuthSession();
+  const syncStatus = useBackendSyncStatus();
+
+  const accountRows: SettingRow[] = [
+    {
+      icon: 'person-outline',
+      label: user ? 'Signed in account' : 'Authentication',
+      value: user ? `${user.name} (${user.role})` : backendConfigured ? 'Sign in required' : 'Backend not configured',
+      onPress: () => {
+        if (!backendConfigured) return;
+        if (!user) router.push('/login' as never);
+      },
+    },
+    {
+      icon: 'cloud-done-outline',
+      label: 'Backend sync',
+      value: !backendConfigured
+        ? 'Disabled'
+        : syncStatus.isSyncing
+          ? 'Syncing...'
+          : syncStatus.lastError
+            ? 'Attention needed'
+            : syncStatus.lastSyncAt
+              ? 'Connected'
+              : 'Waiting',
+    },
+    {
+      icon: 'time-outline',
+      label: 'Last sync',
+      value: syncStatus.lastSyncAt ? new Date(syncStatus.lastSyncAt).toLocaleString() : 'No completed sync yet',
+    },
+  ];
+
+  const adminRows: SettingRow[] = user?.role === 'admin'
+    ? [
+      {
+        icon: 'people-outline',
+        label: 'User access',
+        value: 'Review owners and admins',
+        onPress: () => router.push('/admin/users' as never),
+      },
+      {
+        icon: 'server-outline',
+        label: 'Operations logs',
+        value: 'Requests, audit, and errors',
+        onPress: () => router.push('/admin/logs' as never),
+      },
+    ]
+    : [];
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safe}>
@@ -68,20 +120,46 @@ export default function SettingsScreen() {
           <Text style={styles.appTagline}>Real-time IoT fleet tracking</Text>
         </View>
 
+        <Text style={styles.sectionLabel}>ACCOUNT</Text>
+        <View style={styles.section}>
+          {accountRows.map(item => <SettingItem key={item.label} {...item} />)}
+        </View>
+
         <Text style={styles.sectionLabel}>PREFERENCES</Text>
         <View style={styles.section}>
           {SETTINGS.map(item => <SettingItem key={item.label} {...item} />)}
         </View>
+
+        {adminRows.length > 0 ? (
+          <>
+            <Text style={styles.sectionLabel}>ADMIN</Text>
+            <View style={styles.section}>
+              {adminRows.map(item => <SettingItem key={item.label} {...item} />)}
+            </View>
+          </>
+        ) : null}
 
         <Text style={styles.sectionLabel}>ABOUT</Text>
         <View style={styles.section}>
           {ABOUT.map(item => <SettingItem key={item.label} {...item} />)}
         </View>
 
-        <TouchableOpacity style={styles.signOutBtn} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.signOutBtn}
+          activeOpacity={0.8}
+          onPress={() => {
+            if (user) {
+              signOut().catch(() => undefined);
+              return;
+            }
+            if (backendConfigured) router.push('/login' as never);
+          }}
+        >
           <Ionicons name="log-out-outline" size={18} color={FLEET_COLORS.orange} />
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <Text style={styles.signOutText}>{user ? 'Sign Out' : 'Sign In'}</Text>
         </TouchableOpacity>
+
+        {syncStatus.lastError ? <Text style={styles.syncError}>{syncStatus.lastError}</Text> : null}
       </ScrollView>
     </View>
   );
@@ -203,5 +281,11 @@ const styles = StyleSheet.create({
     color: FLEET_COLORS.orange,
     fontSize: 15,
     fontWeight: '600',
+  },
+  syncError: {
+    color: FLEET_COLORS.orange,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

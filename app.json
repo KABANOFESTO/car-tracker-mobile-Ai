@@ -23,7 +23,10 @@
           "apiKey": "AIzaSyA7vvqRRnfB4eYWOPzap9QaVweabA6YFgg"
         }
       },
-      "permissions": ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"],
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
       "package": "com.favorstar.cartracker"
     },
     "web": {
@@ -57,18 +60,14 @@
           "icon": "./assets/images/icon.png",
           "color": "#4F6EF7"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "5ea2c560-558d-42b0-a23e-fdc6f72a33e8"
-      }
-    },
-    "owner": "favor-star"
+      "router": {}
+    }
   }
 }

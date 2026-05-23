@@ -1,0 +1,7 @@
+env: load .env
+env: export EXPO_PUBLIC_THINGSPEAK_BASE_URL EXPO_PUBLIC_THINGSPEAK_POLL_INTERVAL_MS EXPO_PUBLIC_THINGSPEAK_CONFIG_CHANNEL_ID EXPO_PUBLIC_THINGSPEAK_CONFIG_READ_API_KEY EXPO_PUBLIC_THINGSPEAK_CONFIG_WRITE_API_KEY EXPO_PUBLIC_BACKEND_BASE_URL EXPO_PUBLIC_BACKEND_API_KEY
+Starting project at D:\car-tracker-mobile-h-main\car-tracker-mobile-h-main
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.

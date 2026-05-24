@@ -1,5 +1,6 @@
 import React from 'react';
-import { Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FLEET_COLORS } from '@/constants/theme';
 import { useFleetIntelligence } from '@/hooks/useFleetIntelligence';
@@ -124,3 +125,5 @@ const styles = StyleSheet.create({
   message: { color: FLEET_COLORS.textSecondary, textAlign: 'center', marginTop: 20 },
   error: { color: FLEET_COLORS.orange, textAlign: 'center', marginTop: 20 },
 });
+
+

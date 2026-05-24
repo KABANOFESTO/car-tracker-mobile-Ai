@@ -4,19 +4,8 @@ import { useGeofenceConfig } from "@/hooks/useGeofenceConfig";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { ActivityIndicator, Alert, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function GeofenceScreenWeb() {
   const { config, loading, saving, error, syncStatus, save } = useGeofenceConfig();
@@ -297,3 +286,6 @@ const fieldStyles = StyleSheet.create({
   input: { color: FLEET_COLORS.textPrimary, fontSize: 14, minWidth: 100, paddingVertical: 0 },
   hint: { color: FLEET_COLORS.textSecondary, fontSize: 11, marginTop: 4, marginLeft: 26 }
 });
+
+
+

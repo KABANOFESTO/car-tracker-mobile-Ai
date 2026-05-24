@@ -1,14 +1,15 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { router, Stack } from "expo-router";
+import { router, Stack, useRootNavigationState, useSegments } from "expo-router";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, useColorScheme, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import Animated, { FadeOut } from "react-native-reanimated";
 import "react-native-reanimated";
-import { AuthSessionProvider } from "@/hooks/useAuthSession";
+import { AuthSessionProvider, useAuthSession } from "@/hooks/useAuthSession";
 import { configureNotifications, requestNotificationPermissions } from "@/services/notificationService";
 import { useBackendSync } from "@/hooks/useBackendSync";
 
@@ -23,10 +24,51 @@ export const unstable_settings = {
   anchor: "(tabs)"
 };
 
+function AppRouteGuard({ splashReady }: { splashReady: boolean }) {
+  const navigationState = useRootNavigationState();
+  const segments = useSegments();
+  const { session, user, loading } = useAuthSession();
+
+  useEffect(() => {
+    if (!navigationState?.key || !splashReady || loading) return;
+
+    const topSegment = segments[0] ?? "";
+    const onLogin = topSegment === "login";
+    const onPasswordChange = topSegment === "change-password";
+    const onAdmin = topSegment === "admin";
+
+    if (!session) {
+      if (!onLogin) {
+        router.replace("/login" as never);
+      }
+      return;
+    }
+
+    if (user?.mustChangePassword) {
+      if (!onPasswordChange) {
+        router.replace("/change-password" as never);
+      }
+      return;
+    }
+
+    if (onLogin || onPasswordChange) {
+      router.replace((user?.role === "admin" ? "/admin/users" : "/(tabs)") as never);
+      return;
+    }
+
+    if (onAdmin && user?.role !== "admin") {
+      router.replace("/(tabs)/settings" as never);
+    }
+  }, [loading, navigationState?.key, segments, session, splashReady, user?.mustChangePassword, user?.role]);
+
+  return null;
+}
+
 function RootLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme !== "light";
   const [ready, setReady] = useState(false);
+  const { loading } = useAuthSession();
   useBackendSync();
 
   useEffect(() => {
@@ -60,95 +102,108 @@ function RootLayout() {
   const textColor = isDark ? "#FFFFFF" : "#0B0E27";
 
   return (
-    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="register"
-          options={{
-            headerShown: true,
-            title: "Connect ThingSpeak Channel",
-            headerStyle: { backgroundColor: "#0B0E27" },
-            headerTintColor: "#FFFFFF",
-            headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
-          }}
-        />
-        <Stack.Screen
-          name="login"
-          options={{
-            headerShown: true,
-            title: "Sign In",
-            headerStyle: { backgroundColor: "#0B0E27" },
-            headerTintColor: "#FFFFFF",
-            headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
-          }}
-        />
-        <Stack.Screen
-          name="admin/users"
-          options={{
-            headerShown: true,
-            title: "User Access",
-            headerStyle: { backgroundColor: "#0B0E27" },
-            headerTintColor: "#FFFFFF",
-            headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
-          }}
-        />
-        <Stack.Screen
-          name="admin/logs"
-          options={{
-            headerShown: true,
-            title: "Operations Logs",
-            headerStyle: { backgroundColor: "#0B0E27" },
-            headerTintColor: "#FFFFFF",
-            headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
-          }}
-        />
-        <Stack.Screen
-          name="vehicle/[id]"
-          options={{
-            headerShown: true,
-            title: "Vehicle Details",
-            headerStyle: { backgroundColor: "#0B0E27" },
-            headerTintColor: "#FFFFFF",
-            headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
-          }}
-        />
-        <Stack.Screen
-          name="alerts"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="trips/[vehicleId]"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="reports/export"
-          options={{
-            headerShown: false,
-          }}
-        />
-      </Stack>
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <SafeAreaProvider>
+      <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="register"
+            options={{
+              headerShown: true,
+              title: "Connect ThingSpeak Channel",
+              headerStyle: { backgroundColor: "#0B0E27" },
+              headerTintColor: "#FFFFFF",
+              headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+            }}
+          />
+          <Stack.Screen
+            name="login"
+            options={{
+              headerShown: true,
+              title: "Sign In",
+              headerStyle: { backgroundColor: "#0B0E27" },
+              headerTintColor: "#FFFFFF",
+              headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+            }}
+          />
+          <Stack.Screen
+            name="change-password"
+            options={{
+              headerShown: true,
+              title: "Secure your account",
+              headerStyle: { backgroundColor: "#0B0E27" },
+              headerTintColor: "#FFFFFF",
+              headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+            }}
+          />
+          <Stack.Screen
+            name="admin/users"
+            options={{
+              headerShown: true,
+              title: "User Access",
+              headerStyle: { backgroundColor: "#0B0E27" },
+              headerTintColor: "#FFFFFF",
+              headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+            }}
+          />
+          <Stack.Screen
+            name="admin/logs"
+            options={{
+              headerShown: true,
+              title: "Operations Logs",
+              headerStyle: { backgroundColor: "#0B0E27" },
+              headerTintColor: "#FFFFFF",
+              headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+            }}
+          />
+          <Stack.Screen
+            name="vehicle/[id]"
+            options={{
+              headerShown: true,
+              title: "Vehicle Details",
+              headerStyle: { backgroundColor: "#0B0E27" },
+              headerTintColor: "#FFFFFF",
+              headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
+            }}
+          />
+          <Stack.Screen
+            name="alerts"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="trips/[vehicleId]"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="reports/export"
+            options={{
+              headerShown: false,
+            }}
+          />
+        </Stack>
+        <AppRouteGuard splashReady={ready} />
+        <StatusBar style={isDark ? "light" : "dark"} />
 
-      {!ready && (
-        <Animated.View
-          exiting={FadeOut.duration(500)}
-          style={[styles.splash, { backgroundColor: bg }]}
-        >
-          <View style={styles.logoGroup}>
-            <View style={styles.iconWrap}>
-              <Ionicons name="navigate" size={40} color="#FFFFFF" />
+        {(!ready || loading) && (
+          <Animated.View
+            exiting={FadeOut.duration(500)}
+            style={[styles.splash, { backgroundColor: bg }]}
+          >
+            <View style={styles.logoGroup}>
+              <View style={styles.iconWrap}>
+                <Ionicons name="navigate" size={40} color="#FFFFFF" />
+              </View>
+              <Text style={[styles.appName, { color: textColor }]}>FleetPulse</Text>
+              <Text style={styles.tagline}>Real-time IoT fleet tracking</Text>
             </View>
-            <Text style={[styles.appName, { color: textColor }]}>FleetPulse</Text>
-            <Text style={styles.tagline}>Real-time IoT fleet tracking</Text>
-          </View>
-        </Animated.View>
-      )}
-    </ThemeProvider>
+          </Animated.View>
+        )}
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FLEET_COLORS } from '@/constants/theme';
 import { AuthUser } from '@/constants/types';
 import { createAdminUser, fetchAdminUsers, updateAdminUser } from '@/services/backendApiService';
@@ -11,6 +12,7 @@ export default function AdminUsersScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'owner' as 'owner' | 'admin' });
+  const [submitting, setSubmitting] = useState(false);
 
   async function loadUsers(isRefresh = false) {
     try {
@@ -32,16 +34,24 @@ export default function AdminUsersScreen() {
   }, []);
 
   async function handleCreateUser() {
+    setSubmitting(true);
     try {
-      await createAdminUser({
+      const result = await createAdminUser({
         ...form,
+        password: form.password.trim() || undefined,
         active: true,
       });
       setShowCreate(false);
       setForm({ name: '', email: '', password: '', role: 'owner' });
       await loadUsers(true);
+      Alert.alert(
+        'User created',
+        `Credentials were emailed to ${result.credentialDelivery.recipient}. The user will be required to change their password on first sign in.`
+      );
     } catch (err) {
       Alert.alert('User creation failed', err instanceof Error ? err.message : 'Unable to create user');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -81,6 +91,12 @@ export default function AdminUsersScreen() {
             </View>
             <Text style={styles.meta}>{user.email}</Text>
             <Text style={styles.meta}>{user.active === false ? 'Inactive' : 'Active'}</Text>
+            <Text style={styles.meta}>
+              {user.mustChangePassword ? 'Must change password on next sign in' : 'Password already secured by user'}
+            </Text>
+            {user.onboardingEmailSentAt ? (
+              <Text style={styles.meta}>Credential email sent {new Date(user.onboardingEmailSentAt).toLocaleString()}</Text>
+            ) : null}
             <TouchableOpacity style={styles.actionButton} onPress={() => toggleActive(user)} activeOpacity={0.85}>
               <Text style={styles.actionButtonText}>{user.active === false ? 'Activate' : 'Deactivate'}</Text>
             </TouchableOpacity>
@@ -92,6 +108,9 @@ export default function AdminUsersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Create user</Text>
+            <Text style={styles.modalSubtitle}>
+              FleetPulse will email first-login credentials automatically. Leave the password blank to generate a secure temporary password.
+            </Text>
             <TextInput
               value={form.name}
               onChangeText={(name) => setForm((current) => ({ ...current, name }))}
@@ -110,7 +129,7 @@ export default function AdminUsersScreen() {
             <TextInput
               value={form.password}
               onChangeText={(password) => setForm((current) => ({ ...current, password }))}
-              placeholder="Password"
+              placeholder="Optional temporary password"
               secureTextEntry
               placeholderTextColor={FLEET_COLORS.textSecondary}
               style={styles.input}
@@ -130,8 +149,8 @@ export default function AdminUsersScreen() {
               <TouchableOpacity style={styles.cancelButton} onPress={() => setShowCreate(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleCreateUser}>
-                <Text style={styles.saveButtonText}>Create</Text>
+              <TouchableOpacity style={styles.saveButton} onPress={handleCreateUser} disabled={submitting}>
+                {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveButtonText}>Create</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -197,6 +216,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalTitle: { color: FLEET_COLORS.textPrimary, fontSize: 18, fontWeight: '700' },
+  modalSubtitle: { color: FLEET_COLORS.textSecondary, fontSize: 12, lineHeight: 18 },
   input: {
     backgroundColor: FLEET_COLORS.background,
     borderRadius: 10,

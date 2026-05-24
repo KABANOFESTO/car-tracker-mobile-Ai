@@ -23,6 +23,14 @@ const env = {
   expoPushApiUrl: process.env.EXPO_PUSH_API_URL || 'https://exp.host/--/api/v2/push/send',
   passwordResetTokenTtlMinutes: Number(process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES || 30),
   logRetentionDays: Number(process.env.LOG_RETENTION_DAYS || 30),
+  smtpHost: process.env.SMTP_HOST || '',
+  smtpPort: Number(process.env.SMTP_PORT || 587),
+  smtpSecure: String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true',
+  smtpUser: process.env.SMTP_USER || '',
+  smtpPass: process.env.SMTP_PASS || '',
+  smtpFromEmail: process.env.SMTP_FROM_EMAIL || '',
+  smtpFromName: process.env.SMTP_FROM_NAME || 'FleetPulse',
+  appLoginUrl: process.env.APP_LOGIN_URL || 'http://localhost:8081/login',
 };
 
 if (!env.mongoUri) {

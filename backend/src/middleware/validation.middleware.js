@@ -207,8 +207,8 @@ function validateCreateUserPayload(request, response, next) {
     return next(new AppError(400, 'email must be a valid email string'));
   }
 
-  if (!isNonEmptyString(body.password) || body.password.length < 8) {
-    return next(new AppError(400, 'password must be at least 8 characters'));
+  if (body.password != null && (!isNonEmptyString(body.password) || body.password.length < 8)) {
+    return next(new AppError(400, 'password must be at least 8 characters when provided'));
   }
 
   if (!validRoles.includes(body.role)) {

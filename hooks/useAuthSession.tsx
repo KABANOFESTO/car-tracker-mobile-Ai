@@ -3,6 +3,7 @@ import { AuthSession, AuthUser } from '@/constants/types';
 import { getStoredSession, persistSession } from '@/services/authSessionService';
 import {
   backendIsConfigured,
+  changeBackendPassword,
   fetchBackendFleetState,
   getBackendProfile,
   loginBackend,
@@ -19,6 +20,7 @@ type AuthContextValue = {
   backendConfigured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  completePasswordChange: (currentPassword: string, newPassword: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
@@ -104,6 +106,16 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
     setSession(nextSession);
   }
 
+  async function completePasswordChange(currentPassword: string, newPassword: string) {
+    await changeBackendPassword(currentPassword, newPassword);
+    const stored = await getStoredSession();
+    if (stored) {
+      setSession(stored);
+      return;
+    }
+    await refreshProfile();
+  }
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
@@ -112,6 +124,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
       backendConfigured: backendIsConfigured(),
       signIn,
       signOut,
+      completePasswordChange,
       refreshProfile,
     }),
     [loading, session]

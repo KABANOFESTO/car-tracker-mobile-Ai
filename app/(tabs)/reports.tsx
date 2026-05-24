@@ -1,15 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -302,3 +293,6 @@ const styles = StyleSheet.create({
   sectionTitle: { color: FLEET_COLORS.textPrimary, fontSize: 16, fontWeight: '700' },
   sectionSubtitle: { color: FLEET_COLORS.textSecondary, fontSize: 12 },
 });
+
+
+

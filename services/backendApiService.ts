@@ -1,4 +1,4 @@
-import { AlertEvent, AuthSession, AuthUser, BackendIncidentList } from '@/constants/types';
+import { AlertEvent, AuthSession, AuthUser, BackendIncidentList, UserProvisioningResult } from '@/constants/types';
 import { getStoredSession, persistSession } from './authSessionService';
 
 const BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, '') ?? '';
@@ -121,11 +121,19 @@ export async function logoutBackend(refreshToken?: string): Promise<void> {
 }
 
 export async function changeBackendPassword(currentPassword: string, newPassword: string): Promise<void> {
-  await requestJson('/api/auth/change-password', {
+  const data = await requestJson<{ ok: true; user: AuthUser }>('/api/auth/change-password', {
     method: 'POST',
     authMode: 'jwt',
     body: { currentPassword, newPassword },
   });
+  const session = await getStoredSession();
+  if (session) {
+    const nextSession: AuthSession = {
+      ...session,
+      user: data.user,
+    };
+    await persistSession(nextSession);
+  }
 }
 
 export async function requestBackendPasswordReset(email: string): Promise<{ resetToken?: string }> {
@@ -172,7 +180,7 @@ export async function fetchBackendFleetState(): Promise<{
   state:
     | {
         ownerUserId?: string;
-        vehicles: Array<{
+        vehicles: {
           id: string;
           name: string;
           channelId: number;
@@ -180,11 +188,11 @@ export async function fetchBackendFleetState(): Promise<{
           type: string;
           licensePlate: string;
           driver?: string;
-        }>;
-        zones: Array<any>;
-        protectionStates: Array<any>;
+        }[];
+        zones: any[];
+        protectionStates: any[];
       }
-    | Array<any>;
+    | any[];
 }> {
   return requestJson('/api/fleet-state', { authMode: 'jwt' });
 }
@@ -212,11 +220,11 @@ export async function fetchAdminUsers() {
 export async function createAdminUser(payload: {
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role: 'admin' | 'owner';
   active?: boolean;
 }) {
-  return requestJson<{ ok: true; user: AuthUser }>('/api/admin/users', {
+  return requestJson<{ ok: true } & UserProvisioningResult>('/api/admin/users', {
     method: 'POST',
     authMode: 'jwt',
     body: payload,
@@ -235,13 +243,13 @@ export async function updateAdminUser(
 }
 
 export async function fetchAdminRequestLogs() {
-  return requestJson<{ ok: true; items: Array<any> }>('/api/admin/logs/requests?limit=50', { authMode: 'jwt' });
+  return requestJson<{ ok: true; items: any[] }>('/api/admin/logs/requests?limit=50', { authMode: 'jwt' });
 }
 
 export async function fetchAdminAuditLogs() {
-  return requestJson<{ ok: true; items: Array<any> }>('/api/admin/logs/audit?limit=50', { authMode: 'jwt' });
+  return requestJson<{ ok: true; items: any[] }>('/api/admin/logs/audit?limit=50', { authMode: 'jwt' });
 }
 
 export async function fetchAdminErrorLogs() {
-  return requestJson<{ ok: true; items: Array<any> }>('/api/admin/logs/errors?limit=50', { authMode: 'jwt' });
+  return requestJson<{ ok: true; items: any[] }>('/api/admin/logs/errors?limit=50', { authMode: 'jwt' });
 }

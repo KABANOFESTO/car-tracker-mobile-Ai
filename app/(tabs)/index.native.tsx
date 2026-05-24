@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useRef } from "react";
-import { Platform, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActiveFleetSheet } from "@/components/fleet/ActiveFleetSheet";
 import { FleetMap, FleetMapRef } from "@/components/map/FleetMap";
@@ -171,3 +172,5 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   }
 });
+
+

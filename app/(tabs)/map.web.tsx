@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FleetMap } from "@/components/map/FleetMap";
 import { FLEET_COLORS } from "@/constants/theme";
@@ -67,3 +68,5 @@ const styles = StyleSheet.create({
   dot2: { width: 6, height: 6, borderRadius: 3, backgroundColor: FLEET_COLORS.orange },
   subCount: { fontSize: 12, fontWeight: "500" },
 });
+
+

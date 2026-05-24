@@ -1,13 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { FLEET_COLORS } from '@/constants/theme';
@@ -267,3 +260,6 @@ const styles = StyleSheet.create({
   pointTitle: { color: FLEET_COLORS.textPrimary, fontSize: 15, fontWeight: '700' },
   pointBody: { color: FLEET_COLORS.textSecondary, fontSize: 13, lineHeight: 19 },
 });
+
+
+

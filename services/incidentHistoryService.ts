@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AlertEvent } from '@/constants/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const INCIDENTS_KEY = 'fleetpulse:incident-history';
 const HISTORY_LIMIT = 250;

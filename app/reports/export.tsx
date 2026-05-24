@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { FLEET_COLORS } from '@/constants/theme';
 import { exportFeedHistoryCsv } from '@/services/tripService';
@@ -88,3 +89,5 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
 });
+
+

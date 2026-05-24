@@ -48,6 +48,9 @@ async function meController(request, response) {
       name: request.user.name,
       email: request.user.email,
       role: request.user.role,
+      active: request.user.active,
+      mustChangePassword: request.user.mustChangePassword ?? false,
+      onboardingEmailSentAt: request.user.onboardingEmailSentAt ?? null,
     },
   });
 }

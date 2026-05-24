@@ -7,7 +7,8 @@ async function listUsersController(request, response) {
 }
 
 async function createUserController(request, response) {
-  const user = await createUser(request.body || {});
+  const result = await createUser(request.body || {});
+  const user = result.user;
   await writeAuditLog({
     actorUserId: request.user._id.toString(),
     actorEmail: request.user.email,
@@ -17,7 +18,7 @@ async function createUserController(request, response) {
     ip: request.ip,
     metadata: { email: user.email, role: user.role },
   });
-  response.status(201).json({ ok: true, user });
+  response.status(201).json({ ok: true, ...result });
 }
 
 async function updateUserController(request, response) {

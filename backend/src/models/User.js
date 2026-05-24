@@ -7,6 +7,8 @@ const userSchema = new Schema(
     passwordHash: { type: String, required: true },
     role: { type: String, required: true, enum: ['admin', 'owner'], default: 'admin' },
     active: { type: Boolean, default: true },
+    mustChangePassword: { type: Boolean, default: false },
+    onboardingEmailSentAt: { type: Date, default: null },
     sessionVersion: { type: Number, default: 0 },
     lastLoginAt: { type: Date, default: null },
   },

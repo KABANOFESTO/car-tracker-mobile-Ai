@@ -1,14 +1,6 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  Platform,
-  StatusBar,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { FLEET_COLORS } from '@/constants/theme';
@@ -289,3 +281,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 });
+
+
+

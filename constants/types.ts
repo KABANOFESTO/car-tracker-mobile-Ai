@@ -195,12 +195,23 @@ export interface AuthUser {
   email: string;
   role: 'admin' | 'owner';
   active?: boolean;
+  mustChangePassword?: boolean;
+  onboardingEmailSentAt?: string | null;
 }
 
 export interface AuthSession {
   accessToken: string;
   refreshToken: string;
   user: AuthUser;
+}
+
+export interface UserProvisioningResult {
+  user: AuthUser;
+  credentialDelivery: {
+    recipient: string;
+    sentAt: string;
+    method: 'smtp';
+  };
 }
 
 export interface BackendIncidentList {

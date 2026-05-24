@@ -6,6 +6,7 @@ const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const PasswordResetToken = require('../models/PasswordResetToken');
 const { AppError } = require('../utils/errors');
+const { sendPasswordResetEmail } = require('./email.service');
 
 function buildAccessToken(user) {
   return jwt.sign(
@@ -64,6 +65,8 @@ function toPublicUser(user) {
     email: user.email,
     role: user.role,
     active: user.active,
+    mustChangePassword: user.mustChangePassword ?? false,
+    onboardingEmailSentAt: user.onboardingEmailSentAt ?? null,
   };
 }
 
@@ -79,6 +82,7 @@ async function ensureAdminSeeded() {
     passwordHash,
     role: 'admin',
     active: true,
+    mustChangePassword: false,
   });
 }
 
@@ -165,6 +169,7 @@ async function changePassword(userId, currentPassword, newPassword) {
   if (!matches) throw new AppError(400, 'Current password is incorrect');
 
   user.passwordHash = await bcrypt.hash(String(newPassword || ''), 12);
+  user.mustChangePassword = false;
   user.sessionVersion += 1;
   await user.save();
   await RefreshToken.updateMany({ userId: user._id.toString(), revokedAt: null }, { $set: { revokedAt: new Date() } });
@@ -183,6 +188,12 @@ async function startPasswordReset(email) {
     tokenHash: hashToken(rawToken),
     userId: user._id.toString(),
     expiresAt: new Date(Date.now() + env.passwordResetTokenTtlMinutes * 60 * 1000),
+  });
+
+  await sendPasswordResetEmail({
+    name: user.name,
+    email: user.email,
+    resetToken: rawToken,
   });
 
   return {
@@ -204,6 +215,7 @@ async function resetPassword(resetToken, newPassword) {
   }
 
   user.passwordHash = await bcrypt.hash(String(newPassword || ''), 12);
+  user.mustChangePassword = false;
   user.sessionVersion += 1;
   await user.save();
   stored.usedAt = new Date();

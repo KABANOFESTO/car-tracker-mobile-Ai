@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { router } from 'expo-router';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FLEET_COLORS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { requestBackendPasswordReset } from '@/services/backendApiService';
 
 export default function LoginScreen() {
-  const { signIn } = useAuthSession();
+  const { signIn, backendConfigured } = useAuthSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   async function handleSubmit() {
     if (!email.trim() || !password.trim()) {
@@ -20,11 +22,27 @@ export default function LoginScreen() {
     setSubmitting(true);
     try {
       await signIn(email.trim(), password);
-      router.back();
     } catch (error) {
       Alert.alert('Sign in failed', error instanceof Error ? error.message : 'Unable to sign in right now.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      Alert.alert('Email required', 'Enter the user email address first so the reset instructions go to the right inbox.');
+      return;
+    }
+
+    setSendingReset(true);
+    try {
+      await requestBackendPasswordReset(email.trim());
+      Alert.alert('Reset email sent', 'If this account exists and is active, FleetPulse has sent password reset instructions.');
+    } catch (error) {
+      Alert.alert('Reset failed', error instanceof Error ? error.message : 'Unable to start password reset right now.');
+    } finally {
+      setSendingReset(false);
     }
   }
 
@@ -36,10 +54,17 @@ export default function LoginScreen() {
             <Ionicons name="shield-checkmark-outline" size={28} color="#FFFFFF" />
           </View>
           <Text style={styles.title}>Secure Fleet Access</Text>
-          <Text style={styles.subtitle}>Sign in to sync your fleet, receive owner-scoped incidents, and manage the system safely.</Text>
+          <Text style={styles.subtitle}>Sign in to monitor vehicles, receive protected alerts, and manage your fleet according to your role.</Text>
         </View>
 
         <View style={styles.card}>
+          {!backendConfigured ? (
+            <View style={styles.notice}>
+              <Ionicons name="warning-outline" size={18} color={FLEET_COLORS.orange} />
+              <Text style={styles.noticeText}>Backend access is not configured on this device. Set the backend URL before signing in.</Text>
+            </View>
+          ) : null}
+
           <Text style={styles.label}>Email</Text>
           <TextInput
             value={email}
@@ -63,6 +88,10 @@ export default function LoginScreen() {
 
           <TouchableOpacity style={styles.submit} onPress={handleSubmit} disabled={submitting} activeOpacity={0.85}>
             {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitText}>Sign In</Text>}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.secondaryAction} onPress={handleForgotPassword} disabled={sendingReset} activeOpacity={0.75}>
+            {sendingReset ? <ActivityIndicator color={FLEET_COLORS.primary} /> : <Text style={styles.secondaryActionText}>Send password reset email</Text>}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -92,6 +121,23 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 10,
   },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: FLEET_COLORS.orange + '12',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.orange + '55',
+    padding: 12,
+    marginBottom: 4,
+  },
+  noticeText: {
+    flex: 1,
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   label: { color: FLEET_COLORS.textPrimary, fontSize: 13, fontWeight: '600' },
   input: {
     backgroundColor: FLEET_COLORS.background,
@@ -111,4 +157,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   submitText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  secondaryAction: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  secondaryActionText: {
+    color: FLEET_COLORS.primary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });

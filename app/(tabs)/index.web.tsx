@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActiveFleetSheet } from "@/components/fleet/ActiveFleetSheet";
 import { FleetMap } from "@/components/map/FleetMap";
@@ -93,3 +94,5 @@ const styles = StyleSheet.create({
   },
   fabLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
 });
+
+

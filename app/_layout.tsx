@@ -106,6 +106,7 @@ function RootLayout() {
       <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="admin" options={{ headerShown: false }} />
           <Stack.Screen
             name="register"
             options={{
@@ -131,26 +132,6 @@ function RootLayout() {
             options={{
               headerShown: true,
               title: "Secure your account",
-              headerStyle: { backgroundColor: "#0B0E27" },
-              headerTintColor: "#FFFFFF",
-              headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
-            }}
-          />
-          <Stack.Screen
-            name="admin/users"
-            options={{
-              headerShown: true,
-              title: "User Access",
-              headerStyle: { backgroundColor: "#0B0E27" },
-              headerTintColor: "#FFFFFF",
-              headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }
-            }}
-          />
-          <Stack.Screen
-            name="admin/logs"
-            options={{
-              headerShown: true,
-              title: "Operations Logs",
               headerStyle: { backgroundColor: "#0B0E27" },
               headerTintColor: "#FFFFFF",
               headerTitleStyle: { color: "#FFFFFF", fontWeight: "600" }

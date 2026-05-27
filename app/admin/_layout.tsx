@@ -8,7 +8,7 @@ import { FLEET_COLORS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useProfilePreferences } from '@/hooks/useProfilePreferences';
 
-function LogoutTabButton({
+function AdminLogoutTab({
   color,
   label,
   onPress,
@@ -27,7 +27,7 @@ function LogoutTabButton({
   );
 }
 
-export default function TabLayout() {
+export default function AdminLayout() {
   const { user, signOut } = useAuthSession();
   const { preferences, accent } = useProfilePreferences(user?.id);
 
@@ -53,44 +53,23 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="users"
         options={{
-          title: 'Fleet',
-          tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} />,
+          title: 'Users',
+          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="reports"
+        name="logs"
         options={{
-          title: 'Reports',
-          tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" size={size} color={color} />,
+          title: 'Logs',
+          tabBarIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="intelligence"
+        name="account"
         options={{
-          title: 'AI',
-          tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: 'Map',
-          tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="geofence"
-        options={{
-          title: 'Zones',
-          tabBarIcon: ({ color, size }) => <Ionicons name="radio-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Profile',
+          title: 'Account',
           tabBarIcon: () => <ProfileAvatar avatarId={preferences.avatarId} name={user?.name} size={28} showBadge={false} />,
         }}
       />
@@ -99,7 +78,7 @@ export default function TabLayout() {
         options={{
           title: user ? 'Logout' : 'Sign In',
           tabBarButton: ({ accessibilityState }) => (
-            <LogoutTabButton
+            <AdminLogoutTab
               color={accessibilityState?.selected ? accent.primary : FLEET_COLORS.textSecondary}
               label={user ? 'Logout' : 'Sign In'}
               onPress={() => {

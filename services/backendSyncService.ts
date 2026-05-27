@@ -3,12 +3,11 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { GeofenceZone, Vehicle, VehicleProtectionState } from '@/constants/types';
 import { registerBackendPushToken as registerTokenRequest, syncBackendFleetState } from './backendApiService';
+import { backendIsConfigured } from './backendConfigService';
 import { setBackendSyncStatus } from './backendRuntimeService';
 
-const BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, '') ?? '';
-
 function canSync() {
-  return BACKEND_BASE_URL.length > 0;
+  return backendIsConfigured();
 }
 
 export async function syncBackendState(

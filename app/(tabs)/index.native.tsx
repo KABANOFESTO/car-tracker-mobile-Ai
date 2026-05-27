@@ -6,11 +6,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActiveFleetSheet } from "@/components/fleet/ActiveFleetSheet";
 import { FleetMap, FleetMapRef } from "@/components/map/FleetMap";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { FLEET_COLORS } from "@/constants/theme";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useGeofenceConfig } from "@/hooks/useGeofenceConfig";
+import { useProfilePreferences } from "@/hooks/useProfilePreferences";
 import { useVehicles } from "@/hooks/useVehicles";
 
 export default function FleetDashboard() {
+  const { user } = useAuthSession();
+  const { preferences } = useProfilePreferences(user?.id);
   const { vehicles, stats } = useVehicles();
   const { config: geofenceConfig } = useGeofenceConfig();
   const mapRef = useRef<FleetMapRef>(null);
@@ -31,8 +36,8 @@ export default function FleetDashboard() {
               <Ionicons name="notifications-outline" size={20} color={FLEET_COLORS.textPrimary} />
               <View style={styles.notifBadge} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push("/(tabs)/intelligence" as never)}>
-              <Ionicons name="sparkles-outline" size={16} color="#FFFFFF" />
+            <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push("/(tabs)/settings" as never)}>
+              <ProfileAvatar avatarId={preferences.avatarId} name={user?.name} size={34} showBadge={false} />
             </TouchableOpacity>
           </View>
         </View>
@@ -122,10 +127,6 @@ const styles = StyleSheet.create({
     borderColor: FLEET_COLORS.background
   },
   avatarBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: FLEET_COLORS.primary,
     alignItems: "center",
     justifyContent: "center"
   },

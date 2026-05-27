@@ -1,44 +1,72 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { FLEET_COLORS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useBackendSyncStatus } from '@/hooks/useBackendSyncStatus';
+import { useProfilePreferences } from '@/hooks/useProfilePreferences';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
+import { ACCENT_THEME_PRESETS, PROFILE_AVATAR_PRESETS } from '@/services/profilePreferencesService';
 
-interface SettingRow {
-  icon: string;
+function InfoPill({
+  icon,
+  label,
+  value,
+  tint,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  value?: string;
-  onPress?: () => void;
+  value: string;
+  tint: string;
+}) {
+  return (
+    <View style={[styles.infoPill, { borderColor: tint + '44', backgroundColor: tint + '15' }]}>
+      <Ionicons name={icon} size={15} color={tint} />
+      <View style={styles.infoPillTextWrap}>
+        <Text style={styles.infoPillLabel}>{label}</Text>
+        <Text style={styles.infoPillValue}>{value}</Text>
+      </View>
+    </View>
+  );
 }
 
-const SETTINGS: SettingRow[] = [
-  { icon: 'notifications-outline', label: 'Notifications', value: 'Enabled' },
-  { icon: 'map-outline', label: 'Default Map Style', value: 'Dark' },
-  { icon: 'refresh-outline', label: 'Update Interval', value: '15 seconds' },
-  { icon: 'shield-checkmark-outline', label: 'Permissions', value: 'Location granted' },
-];
-
-const ABOUT: SettingRow[] = [
-  { icon: 'information-circle-outline', label: 'Version', value: '1.0.0' },
-  { icon: 'cloud-outline', label: 'ThingSpeak', value: 'Live polling (15s)' },
-  { icon: 'document-text-outline', label: 'Privacy Policy' },
-  { icon: 'help-circle-outline', label: 'Support' },
-];
-
-function SettingItem({ icon, label, value, onPress }: SettingRow) {
+function ActionRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  accent,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  accent: string;
+}) {
   return (
-    <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={onPress}>
-      <View style={styles.rowIcon}>
-        <Ionicons name={icon as any} size={18} color={FLEET_COLORS.primary} />
+    <TouchableOpacity style={styles.actionRow} onPress={onPress} activeOpacity={0.85}>
+      <View style={[styles.actionIcon, { backgroundColor: accent + '18', borderColor: accent + '38' }]}>
+        <Ionicons name={icon} size={18} color={accent} />
       </View>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <View style={styles.rowRight}>
-        {value && <Text style={styles.rowValue}>{value}</Text>}
-        <Ionicons name="chevron-forward" size={14} color={FLEET_COLORS.border} />
+      <View style={styles.actionBody}>
+        <Text style={styles.actionTitle}>{title}</Text>
+        <Text style={styles.actionSubtitle}>{subtitle}</Text>
       </View>
+      <Ionicons name="chevron-forward" size={16} color={FLEET_COLORS.textSecondary} />
     </TouchableOpacity>
   );
 }
@@ -46,119 +74,292 @@ function SettingItem({ icon, label, value, onPress }: SettingRow) {
 export default function SettingsScreen() {
   const { user, backendConfigured, signOut } = useAuthSession();
   const syncStatus = useBackendSyncStatus();
+  const { preferences, accent, setAvatarId, setAccentTheme } = useProfilePreferences(user?.id);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  const accountRows: SettingRow[] = [
-    {
-      icon: 'person-outline',
-      label: user ? 'Signed in account' : 'Authentication',
-      value: user ? `${user.name} (${user.role})` : backendConfigured ? 'Sign in required' : 'Backend not configured',
-      onPress: () => {
-        if (!backendConfigured) return;
-        if (!user) router.push('/login' as never);
-      },
-    },
-    {
-      icon: 'cloud-done-outline',
-      label: 'Backend sync',
-      value: !backendConfigured
-        ? 'Disabled'
-        : syncStatus.isSyncing
-          ? 'Syncing...'
-          : syncStatus.lastError
-            ? 'Attention needed'
-            : syncStatus.lastSyncAt
-              ? 'Connected'
-              : 'Waiting',
-    },
-    {
-      icon: 'time-outline',
-      label: 'Last sync',
-      value: syncStatus.lastSyncAt ? new Date(syncStatus.lastSyncAt).toLocaleString() : 'No completed sync yet',
-    },
-  ];
+  const syncLabel = useMemo(() => {
+    if (!backendConfigured) return 'Backend unavailable';
+    if (syncStatus.isSyncing) return 'Syncing fleet state';
+    if (syncStatus.lastError) return 'Sync attention needed';
+    if (syncStatus.lastSyncAt) return 'Connected to backend';
+    return 'Waiting for first sync';
+  }, [backendConfigured, syncStatus.isSyncing, syncStatus.lastError, syncStatus.lastSyncAt]);
 
-  const adminRows: SettingRow[] = user?.role === 'admin'
-    ? [
-      {
-        icon: 'people-outline',
-        label: 'User access',
-        value: 'Review owners and admins',
-        onPress: () => router.push('/admin/users' as never),
-      },
-      {
-        icon: 'server-outline',
-        label: 'Operations logs',
-        value: 'Requests, audit, and errors',
-        onPress: () => router.push('/admin/logs' as never),
-      },
-    ]
-    : [];
+  async function handleSignOut() {
+    if (!user) {
+      if (backendConfigured) router.push('/login' as never);
+      return;
+    }
+
+    setSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
+  async function handleThemeChange(themeId: keyof typeof ACCENT_THEME_PRESETS) {
+    try {
+      await setAccentTheme(themeId);
+    } catch {
+      Alert.alert('Theme update failed', 'Unable to save this appearance option right now.');
+    }
+  }
+
+  async function handleAvatarChange(avatarId: keyof typeof PROFILE_AVATAR_PRESETS) {
+    try {
+      await setAvatarId(avatarId);
+      setShowAvatarModal(false);
+    } catch {
+      Alert.alert('Avatar update failed', 'Unable to save this avatar right now.');
+    }
+  }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
+          <Text style={styles.headerEyebrow}>Account Center</Text>
+          <Text style={styles.headerTitle}>Profile & Settings</Text>
         </View>
       </SafeAreaView>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* App identity */}
-        <View style={styles.appCard}>
-          <View style={styles.appLogo}>
-            <Ionicons name="navigate" size={28} color="#FFFFFF" />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <View style={styles.heroCard}>
+          <View style={[styles.heroGlow, { backgroundColor: accent.primary + '35' }]} />
+          <View style={styles.heroTopRow}>
+            <TouchableOpacity activeOpacity={0.9} onPress={() => setShowProfileModal(true)}>
+              <ProfileAvatar avatarId={preferences.avatarId} name={user?.name} size={76} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editAvatarButton, { borderColor: accent.primary + '55', backgroundColor: accent.primary + '12' }]}
+              onPress={() => setShowAvatarModal(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="camera-outline" size={16} color={accent.primary} />
+              <Text style={[styles.editAvatarText, { color: accent.primary }]}>Edit avatar</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.appName}>FleetPulse</Text>
-          <Text style={styles.appTagline}>Real-time IoT fleet tracking</Text>
+
+          <Text style={styles.heroName}>{user?.name ?? 'Guest user'}</Text>
+          <Text style={styles.heroMeta}>
+            {user ? `${user.email}  •  ${user.role.toUpperCase()}` : backendConfigured ? 'Sign in required' : 'Backend not configured'}
+          </Text>
+
+          <View style={styles.heroPills}>
+            <InfoPill
+              icon="shield-checkmark-outline"
+              label="Security"
+              value={user?.mustChangePassword ? 'Password change pending' : 'Protected'}
+              tint={accent.primary}
+            />
+            <InfoPill
+              icon="cloud-done-outline"
+              label="Backend"
+              value={syncLabel}
+              tint={syncStatus.lastError ? FLEET_COLORS.orange : accent.secondary}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: accent.primary, shadowColor: accent.primary }]}
+            onPress={() => (user ? router.push('/change-password' as never) : router.push('/login' as never))}
+            activeOpacity={0.86}
+          >
+            <Ionicons name={user ? 'lock-closed-outline' : 'log-in-outline'} size={18} color="#FFFFFF" />
+            <Text style={styles.primaryButtonText}>{user ? 'Change password' : 'Sign in to continue'}</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
-        <View style={styles.section}>
-          {accountRows.map(item => <SettingItem key={item.label} {...item} />)}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <Text style={styles.sectionSubtitle}>Pick a theme accent that shapes your account space and navigation.</Text>
+          <View style={styles.themeGrid}>
+            {Object.entries(ACCENT_THEME_PRESETS).map(([themeId, theme]) => {
+              const active = preferences.accentTheme === themeId;
+              return (
+                <TouchableOpacity
+                  key={themeId}
+                  style={[styles.themeCard, active && { borderColor: theme.primary, backgroundColor: theme.primary + '12' }]}
+                  onPress={() => handleThemeChange(themeId as keyof typeof ACCENT_THEME_PRESETS)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.themeSwatches}>
+                    <View style={[styles.themeSwatch, { backgroundColor: theme.primary }]} />
+                    <View style={[styles.themeSwatch, { backgroundColor: theme.secondary }]} />
+                    <View style={[styles.themeSwatch, { backgroundColor: theme.highlight }]} />
+                  </View>
+                  <Text style={styles.themeLabel}>{theme.label}</Text>
+                  <Text style={styles.themeState}>{active ? 'Active' : 'Tap to apply'}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-        <Text style={styles.sectionLabel}>PREFERENCES</Text>
-        <View style={styles.section}>
-          {SETTINGS.map(item => <SettingItem key={item.label} {...item} />)}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Account Actions</Text>
+          <ActionRow
+            icon="person-circle-outline"
+            title="Profile details"
+            subtitle="Review email, role, session status, and security markers"
+            onPress={() => setShowProfileModal(true)}
+            accent={accent.primary}
+          />
+          <ActionRow
+            icon="key-outline"
+            title="Change password"
+            subtitle="Update your password and keep account access secure"
+            onPress={() => router.push('/change-password' as never)}
+            accent={accent.secondary}
+          />
+          <ActionRow
+            icon="image-outline"
+            title="Profile image style"
+            subtitle="Choose the avatar look that appears across your workspace"
+            onPress={() => setShowAvatarModal(true)}
+            accent={accent.highlight}
+          />
         </View>
 
-        {adminRows.length > 0 ? (
-          <>
-            <Text style={styles.sectionLabel}>ADMIN</Text>
-            <View style={styles.section}>
-              {adminRows.map(item => <SettingItem key={item.label} {...item} />)}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>System Status</Text>
+          <View style={styles.statusGrid}>
+            <View style={styles.statusTile}>
+              <Text style={styles.statusLabel}>Backend URL</Text>
+              <Text style={styles.statusValue}>{backendConfigured ? 'Configured' : 'Missing'}</Text>
             </View>
-          </>
+            <View style={styles.statusTile}>
+              <Text style={styles.statusLabel}>Last Sync</Text>
+              <Text style={styles.statusValue}>
+                {syncStatus.lastSyncAt ? new Date(syncStatus.lastSyncAt).toLocaleTimeString() : 'Pending'}
+              </Text>
+            </View>
+            <View style={styles.statusTile}>
+              <Text style={styles.statusLabel}>Session</Text>
+              <Text style={styles.statusValue}>{user ? 'Authenticated' : 'Guest mode'}</Text>
+            </View>
+            <View style={styles.statusTile}>
+              <Text style={styles.statusLabel}>Role</Text>
+              <Text style={styles.statusValue}>{user?.role ?? 'none'}</Text>
+            </View>
+          </View>
+          {syncStatus.lastError ? <Text style={styles.errorText}>{syncStatus.lastError}</Text> : null}
+        </View>
+
+        {user?.role === 'admin' ? (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Admin Workspace</Text>
+            <ActionRow
+              icon="people-outline"
+              title="User access management"
+              subtitle="Create owners, create admins, and control account activation"
+              onPress={() => router.push('/admin/users' as never)}
+              accent={accent.primary}
+            />
+            <ActionRow
+              icon="server-outline"
+              title="Operations logs"
+              subtitle="Review request, audit, and error activity from the backend"
+              onPress={() => router.push('/admin/logs' as never)}
+              accent={accent.secondary}
+            />
+          </View>
         ) : null}
 
-        <Text style={styles.sectionLabel}>ABOUT</Text>
-        <View style={styles.section}>
-          {ABOUT.map(item => <SettingItem key={item.label} {...item} />)}
-        </View>
-
         <TouchableOpacity
-          style={styles.signOutBtn}
-          activeOpacity={0.8}
-          onPress={() => {
-            if (user) {
-              signOut().catch(() => undefined);
-              return;
-            }
-            if (backendConfigured) router.push('/login' as never);
-          }}
+          style={[styles.logoutButton, { borderColor: FLEET_COLORS.orange + '55', backgroundColor: FLEET_COLORS.orange + '12' }]}
+          onPress={handleSignOut}
+          activeOpacity={0.85}
+          disabled={signingOut}
         >
-          <Ionicons name="log-out-outline" size={18} color={FLEET_COLORS.orange} />
-          <Text style={styles.signOutText}>{user ? 'Sign Out' : 'Sign In'}</Text>
+          {signingOut ? (
+            <ActivityIndicator color={FLEET_COLORS.orange} />
+          ) : (
+            <>
+              <Ionicons name={user ? 'log-out-outline' : 'log-in-outline'} size={19} color={FLEET_COLORS.orange} />
+              <Text style={styles.logoutText}>{user ? 'Sign out securely' : 'Sign in'}</Text>
+            </>
+          )}
         </TouchableOpacity>
-
-        {syncStatus.lastError ? <Text style={styles.syncError}>{syncStatus.lastError}</Text> : null}
       </ScrollView>
+
+      <Modal visible={showProfileModal} transparent animationType="fade" onRequestClose={() => setShowProfileModal(false)}>
+        <Pressable style={styles.modalScrim} onPress={() => setShowProfileModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <View style={styles.modalHandle} />
+            <ProfileAvatar avatarId={preferences.avatarId} name={user?.name} size={82} />
+            <Text style={styles.modalName}>{user?.name ?? 'Guest user'}</Text>
+            <Text style={styles.modalEmail}>{user?.email ?? 'No authenticated session'}</Text>
+            <View style={styles.modalList}>
+              <View style={styles.modalRow}>
+                <Text style={styles.modalRowLabel}>Role</Text>
+                <Text style={styles.modalRowValue}>{user?.role ?? 'none'}</Text>
+              </View>
+              <View style={styles.modalRow}>
+                <Text style={styles.modalRowLabel}>Account status</Text>
+                <Text style={styles.modalRowValue}>{user?.active === false ? 'Inactive' : 'Active'}</Text>
+              </View>
+              <View style={styles.modalRow}>
+                <Text style={styles.modalRowLabel}>Password state</Text>
+                <Text style={styles.modalRowValue}>{user?.mustChangePassword ? 'Must change password' : 'Up to date'}</Text>
+              </View>
+              <View style={styles.modalRow}>
+                <Text style={styles.modalRowLabel}>Theme</Text>
+                <Text style={styles.modalRowValue}>{accent.label}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.modalPrimaryButton, { backgroundColor: accent.primary }]}
+              onPress={() => {
+                setShowProfileModal(false);
+                router.push('/change-password' as never);
+              }}
+            >
+              <Text style={styles.modalPrimaryButtonText}>Manage security</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={showAvatarModal} transparent animationType="slide" onRequestClose={() => setShowAvatarModal(false)}>
+        <View style={styles.modalScrim}>
+          <View style={[styles.modalCard, styles.avatarModalCard]}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalName}>Choose profile image style</Text>
+            <Text style={styles.modalEmail}>A polished avatar system keeps the app production-ready without broken uploads.</Text>
+            <View style={styles.avatarGrid}>
+              {Object.entries(PROFILE_AVATAR_PRESETS).map(([avatarId, preset]) => {
+                const active = preferences.avatarId === avatarId;
+                return (
+                  <TouchableOpacity
+                    key={avatarId}
+                    style={[styles.avatarChoice, active && { borderColor: preset.background, backgroundColor: preset.background + '14' }]}
+                    onPress={() => handleAvatarChange(avatarId as keyof typeof PROFILE_AVATAR_PRESETS)}
+                    activeOpacity={0.85}
+                  >
+                    <ProfileAvatar avatarId={avatarId as keyof typeof PROFILE_AVATAR_PRESETS} name={user?.name} size={56} />
+                    <Text style={styles.avatarChoiceLabel}>{preset.label}</Text>
+                    <Text style={styles.avatarChoiceState}>{active ? 'Selected' : 'Tap to use'}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <TouchableOpacity style={styles.modalSecondaryButton} onPress={() => setShowAvatarModal(false)}>
+              <Text style={styles.modalSecondaryButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: FLEET_COLORS.background,
   },
@@ -167,120 +368,365 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 16 : 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: FLEET_COLORS.border,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 14 : 14,
+    paddingBottom: 10,
   },
-  title: {
-    color: FLEET_COLORS.textPrimary,
-    fontSize: 22,
+  headerEyebrow: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
   },
-  scroll: {
-    padding: 16,
+  headerTitle: {
+    marginTop: 4,
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+  content: {
+    paddingHorizontal: 16,
     paddingBottom: 40,
-    gap: 4,
+    gap: 16,
   },
-  appCard: {
+  heroCard: {
+    overflow: 'hidden',
     backgroundColor: FLEET_COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: FLEET_COLORS.border,
-    alignItems: 'center',
-    paddingVertical: 24,
-    marginBottom: 24,
-    gap: 6,
+    padding: 20,
+    gap: 14,
   },
-  appLogo: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: FLEET_COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
+  heroGlow: {
+    position: 'absolute',
+    top: -30,
+    right: -10,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    opacity: 0.8,
   },
-  appName: {
-    color: FLEET_COLORS.textPrimary,
-    fontSize: 20,
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  editAvatarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  editAvatarText: {
+    fontSize: 13,
     fontWeight: '700',
   },
-  appTagline: {
+  heroName: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  heroMeta: {
     color: FLEET_COLORS.textSecondary,
     fontSize: 13,
+    lineHeight: 19,
   },
-  sectionLabel: {
+  heroPills: {
+    gap: 10,
+  },
+  infoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  infoPillTextWrap: {
+    flex: 1,
+  },
+  infoPillLabel: {
     color: FLEET_COLORS.textSecondary,
     fontSize: 11,
-    fontWeight: '600',
+    textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 8,
-    marginTop: 8,
-    marginLeft: 4,
   },
-  section: {
+  infoPillValue: {
+    marginTop: 2,
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  primaryButton: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderRadius: 16,
+    paddingVertical: 15,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  sectionCard: {
     backgroundColor: FLEET_COLORS.surface,
-    borderRadius: 12,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    padding: 18,
+    gap: 14,
+  },
+  sectionTitle: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  sectionSubtitle: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: -6,
+  },
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  themeCard: {
+    flexBasis: '31%',
+    flexGrow: 1,
+    minWidth: 96,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    backgroundColor: FLEET_COLORS.background,
+    padding: 12,
+    gap: 10,
+  },
+  themeSwatches: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  themeSwatch: {
+    flex: 1,
+    height: 10,
+    borderRadius: 999,
+  },
+  themeLabel: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  themeState: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    backgroundColor: FLEET_COLORS.background,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    padding: 14,
+  },
+  actionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBody: {
+    flex: 1,
+    gap: 3,
+  },
+  actionTitle: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  actionSubtitle: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  statusGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  statusTile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    minWidth: 130,
+    borderRadius: 18,
+    backgroundColor: FLEET_COLORS.background,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    padding: 14,
+    gap: 6,
+  },
+  statusLabel: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  statusValue: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  errorText: {
+    color: FLEET_COLORS.orange,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 16,
+    marginTop: 2,
+  },
+  logoutText: {
+    color: FLEET_COLORS.orange,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  modalScrim: {
+    flex: 1,
+    backgroundColor: '#040817B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: FLEET_COLORS.surface,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    padding: 20,
+    alignItems: 'center',
+    gap: 14,
+  },
+  avatarModalCard: {
+    alignItems: 'stretch',
+  },
+  modalHandle: {
+    width: 48,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: FLEET_COLORS.border,
+  },
+  modalName: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  modalEmail: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  modalList: {
+    width: '100%',
+    backgroundColor: FLEET_COLORS.background,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: FLEET_COLORS.border,
     overflow: 'hidden',
-    marginBottom: 16,
   },
-  row: {
+  modalRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     borderBottomWidth: 1,
     borderBottomColor: FLEET_COLORS.border,
-    gap: 12,
   },
-  rowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: FLEET_COLORS.primary + '22',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowLabel: {
-    flex: 1,
-    color: FLEET_COLORS.textPrimary,
-    fontSize: 14,
-  },
-  rowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  rowValue: {
+  modalRowLabel: {
     color: FLEET_COLORS.textSecondary,
     fontSize: 13,
   },
-  signOutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: FLEET_COLORS.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: FLEET_COLORS.orange + '55',
+  modalRowValue: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  modalPrimaryButton: {
+    width: '100%',
+    borderRadius: 16,
     paddingVertical: 14,
-    marginTop: 8,
+    alignItems: 'center',
   },
-  signOutText: {
-    color: FLEET_COLORS.orange,
+  modalPrimaryButtonText: {
+    color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '800',
   },
-  syncError: {
-    color: FLEET_COLORS.orange,
+  avatarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  avatarChoice: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    minWidth: 132,
+    backgroundColor: FLEET_COLORS.background,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    borderRadius: 18,
+    padding: 14,
+    alignItems: 'center',
+    gap: 8,
+  },
+  avatarChoiceLabel: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  avatarChoiceState: {
+    color: FLEET_COLORS.textSecondary,
     fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
+  },
+  modalSecondaryButton: {
+    alignSelf: 'center',
+    marginTop: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  modalSecondaryButtonText: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
-
-
-

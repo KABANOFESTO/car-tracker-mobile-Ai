@@ -6,10 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActiveFleetSheet } from "@/components/fleet/ActiveFleetSheet";
 import { FleetMap } from "@/components/map/FleetMap";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { FLEET_COLORS } from "@/constants/theme";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useProfilePreferences } from "@/hooks/useProfilePreferences";
 import { useVehicles } from "@/hooks/useVehicles";
 
 export default function FleetDashboardWeb() {
+  const { user } = useAuthSession();
+  const { preferences } = useProfilePreferences(user?.id);
   const { vehicles, stats } = useVehicles();
 
   return (
@@ -25,6 +30,9 @@ export default function FleetDashboardWeb() {
           <View style={styles.topActions}>
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/alerts" as never)}>
               <Ionicons name="notifications-outline" size={20} color={FLEET_COLORS.textPrimary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/(tabs)/settings" as never)}>
+              <ProfileAvatar avatarId={preferences.avatarId} name={user?.name} size={34} showBadge={false} />
             </TouchableOpacity>
           </View>
         </View>

@@ -1,7 +1,7 @@
 import { AlertEvent, AuthSession, AuthUser, BackendIncidentList, UserProvisioningResult } from '@/constants/types';
 import { getStoredSession, persistSession } from './authSessionService';
+import { backendIsConfigured, getBackendBaseUrl, getBackendConnectionHelp } from './backendConfigService';
 
-const BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, '') ?? '';
 const BACKEND_API_KEY = process.env.EXPO_PUBLIC_BACKEND_API_KEY ?? '';
 
 type AuthMode = 'none' | 'jwt' | 'both';
@@ -13,17 +13,16 @@ interface RequestOptions {
 }
 
 function hasBackendConfig() {
-  return BACKEND_BASE_URL.length > 0;
+  return backendIsConfigured();
 }
 
-export function backendIsConfigured() {
-  return hasBackendConfig();
-}
+export { backendIsConfigured } from './backendConfigService';
 
 async function refreshSession(session: AuthSession): Promise<AuthSession | null> {
   if (!hasBackendConfig()) return null;
+  const backendBaseUrl = getBackendBaseUrl();
 
-  const response = await fetch(`${BACKEND_BASE_URL}/api/auth/refresh`, {
+  const response = await fetch(`${backendBaseUrl}/api/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken: session.refreshToken }),
@@ -53,6 +52,7 @@ async function requestJson<T>(path: string, options: RequestOptions = {}, retry 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
+  const backendBaseUrl = getBackendBaseUrl();
 
   if (options.authMode === 'both') {
     if (!BACKEND_API_KEY) throw new Error('Backend API key is missing');
@@ -63,11 +63,19 @@ async function requestJson<T>(path: string, options: RequestOptions = {}, retry 
     headers.authorization = `Bearer ${session.accessToken}`;
   }
 
-  const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
-    method: options.method ?? 'GET',
-    headers,
-    body: options.body != null ? JSON.stringify(options.body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${backendBaseUrl}${path}`, {
+      method: options.method ?? 'GET',
+      headers,
+      body: options.body != null ? JSON.stringify(options.body) : undefined,
+    });
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(getBackendConnectionHelp());
+    }
+    throw error;
+  }
 
   if (response.status === 401 && retry && session?.refreshToken && options.authMode !== 'none') {
     const refreshed = await refreshSession(session);

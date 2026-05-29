@@ -207,10 +207,12 @@ export interface AuthSession {
 
 export interface UserProvisioningResult {
   user: AuthUser;
+  temporaryPassword: string;
   credentialDelivery: {
     recipient: string;
     sentAt: string;
-    method: 'smtp';
+    method: 'smtp' | 'manual';
+    warning?: string;
   };
 }
 

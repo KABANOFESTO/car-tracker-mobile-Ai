@@ -182,14 +182,14 @@ export default function LoginScreen() {
               </View>
             )}
 
-            {backendConfigured && (
+            {/* {backendConfigured && (
               <View style={styles.notice}>
                 <Ionicons name="server-outline" size={16} color={FLEET_COLORS.primary} />
                 <Text style={styles.noticeText}>
                   Backend: {resolvedBaseUrl}
                 </Text>
               </View>
-            )}
+            )} */}
 
             <Text style={styles.cardTitle}>Welcome back</Text>
             <Text style={styles.cardSub}>Sign in to your account</Text>

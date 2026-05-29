@@ -104,9 +104,13 @@ export default function AdminUsersScreen() {
       setShowCreate(false);
       setForm({ name: '', email: '', password: '', role: 'owner' });
       await loadUsers(true);
+      const deliveryMessage = result.credentialDelivery.method === 'smtp'
+        ? `Credentials were emailed to ${result.credentialDelivery.recipient}.`
+        : `Email delivery is not configured yet. Share these temporary credentials with ${result.credentialDelivery.recipient} manually.`;
+
       Alert.alert(
         'User created',
-        `Credentials were emailed to ${result.credentialDelivery.recipient}. The user will be required to change their password on first sign in.`
+        `${deliveryMessage}\n\nEmail: ${result.user.email}\nTemporary password: ${result.temporaryPassword}\n\nThe user will be required to change this password on first sign in.`
       );
     } catch (err) {
       Alert.alert('User creation failed', err instanceof Error ? err.message : 'Unable to create user');

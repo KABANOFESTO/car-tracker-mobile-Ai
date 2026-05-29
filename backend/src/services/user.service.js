@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { AppError } = require('../utils/errors');
-const { sendProvisioningEmail } = require('./email.service');
+const { isEmailConfigured, sendProvisioningEmail } = require('./email.service');
 const { generateTemporaryPassword } = require('./password.service');
 
 function toPublicUser(user) {
@@ -41,28 +41,37 @@ async function createUser(payload) {
     mustChangePassword: true,
   });
 
-  try {
+  let credentialDelivery;
+
+  if (isEmailConfigured()) {
     await sendProvisioningEmail({
       name: user.name,
       email: user.email,
       password: temporaryPassword,
       role: user.role,
     });
-  } catch (error) {
-    await User.findByIdAndDelete(user._id);
-    throw error;
-  }
 
-  user.onboardingEmailSentAt = new Date();
-  await user.save();
+    user.onboardingEmailSentAt = new Date();
+    await user.save();
 
-  return {
-    user: toPublicUser(user),
-    credentialDelivery: {
+    credentialDelivery = {
       recipient: user.email,
       sentAt: user.onboardingEmailSentAt.toISOString(),
       method: 'smtp',
-    },
+    };
+  } else {
+    credentialDelivery = {
+      recipient: user.email,
+      sentAt: new Date().toISOString(),
+      method: 'manual',
+      warning: 'Email delivery is not configured. Share the temporary credentials with the user manually.',
+    };
+  }
+
+  return {
+    user: toPublicUser(user),
+    temporaryPassword,
+    credentialDelivery,
   };
 }
 

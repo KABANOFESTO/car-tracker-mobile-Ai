@@ -28,6 +28,14 @@ DISPATCHER_POLL_INTERVAL_MS=30000
 EXPO_PUSH_API_URL=https://exp.host/--/api/v2/push/send
 PASSWORD_RESET_TOKEN_TTL_MINUTES=30
 LOG_RETENTION_DAYS=30
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM_EMAIL=
+SMTP_FROM_NAME=FleetPulse
+APP_LOGIN_URL=http://localhost:8081/login
 ```
 
 ## Start
@@ -238,3 +246,4 @@ Authorization: Bearer {{jwt}}
 - fleet state is owner-scoped
 - request, audit, and error logs are retained according to `LOG_RETENTION_DAYS`
 - password reset token delivery still needs email/SMS infrastructure in production
+- if SMTP is not configured, admin-created users are still created and the API returns a temporary password for manual delivery

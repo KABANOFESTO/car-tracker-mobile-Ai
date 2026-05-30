@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { RefObject, useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import MapView, { Circle, Marker, MapPressEvent } from 'react-native-maps';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import MapView, { Circle, MapPressEvent, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import { FLEET_COLORS } from '@/constants/theme';
 
@@ -51,6 +51,7 @@ export function GeofencePreview({ mapRef, latitude, longitude, radius, onSelectC
     <View style={styles.mapBox}>
       <MapView
         ref={mapRef}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         style={styles.map}
         initialRegion={region}
         scrollEnabled
@@ -96,22 +97,27 @@ export function GeofencePreview({ mapRef, latitude, longitude, radius, onSelectC
 
 const styles = StyleSheet.create({
   mapBox: {
-    height: 240,
-    borderRadius: 18,
+    height: 300,
+    borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: FLEET_COLORS.border,
-    marginBottom: 4,
+    marginBottom: 8,
     backgroundColor: FLEET_COLORS.surface,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
   map: { flex: 1 },
   recenterBtn: {
     position: 'absolute',
-    top: 10,
+    top: 12,
     right: 10,
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: FLEET_COLORS.surface + 'EE',
     borderWidth: 1,
     borderColor: FLEET_COLORS.border,
@@ -122,7 +128,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 10,
     right: 10,
-    top: 10,
+    top: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -131,12 +137,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: FLEET_COLORS.border,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
-  hintText: { color: FLEET_COLORS.textSecondary, fontSize: 11, fontWeight: '600' },
+  hintText: { color: FLEET_COLORS.textSecondary, fontSize: 11, fontWeight: '700' },
   radiusBadge: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 12,
     right: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -146,9 +152,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: FLEET_COLORS.border,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
-  radiusText: { color: FLEET_COLORS.primary, fontSize: 11, fontWeight: '700' },
+  radiusText: { color: FLEET_COLORS.primary, fontSize: 11, fontWeight: '800' },
 });
 
 const darkMapStyle = [

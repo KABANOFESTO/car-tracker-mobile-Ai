@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   ScrollView,
   StatusBar,
@@ -72,6 +73,20 @@ export default function GeofenceScreen() {
     setLocating(true);
     setLocationHint('Looking for a usable location...');
     try {
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        setLocationHint('Location services are turned off. Enable them, or tap the map to place the center manually.');
+        Alert.alert(
+          'Location Services Off',
+          'Turn on device location services for one-tap geofence placement, or continue by tapping the map.',
+          [
+            { text: 'Open Settings', onPress: () => Linking.openSettings().catch(() => undefined) },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+
       const lastKnown = await Location.getLastKnownPositionAsync();
       if (lastKnown) {
         setLat(lastKnown.coords.latitude.toFixed(6));
@@ -84,6 +99,10 @@ export default function GeofenceScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLocationHint('Location access was not granted. Tap the map to choose the center manually.');
+        Alert.alert(
+          'Permission Needed',
+          'We could not use your live location. You can still tap the map to set the center manually.'
+        );
         return;
       }
 
@@ -173,6 +192,16 @@ export default function GeofenceScreen() {
           </View>
         ) : (
           <>
+            <View style={styles.mapHelpCard}>
+              <Ionicons name="map-outline" size={18} color={FLEET_COLORS.primary} />
+              <View style={styles.mapHelpTextWrap}>
+                <Text style={styles.mapHelpTitle}>Map-first geofence setup</Text>
+                <Text style={styles.mapHelpText}>
+                  Tap anywhere on the map to place the center. Use the location button only when you want the app to seed the map faster.
+                </Text>
+              </View>
+            </View>
+
             <GeofencePreview
               mapRef={mapRef}
               latitude={parseFloat(lat) || 0}
@@ -352,16 +381,34 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   loadingBox: { alignItems: 'center', gap: 12, marginTop: 60 },
   loadingText: { color: FLEET_COLORS.textSecondary, fontSize: 14 },
+  mapHelpCard: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    backgroundColor: FLEET_COLORS.primary + '10',
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.primary + '26',
+    borderRadius: 16,
+    padding: 14,
+  },
+  mapHelpTextWrap: { flex: 1, gap: 4 },
+  mapHelpTitle: { color: FLEET_COLORS.textPrimary, fontSize: 14, fontWeight: '700' },
+  mapHelpText: { color: FLEET_COLORS.textSecondary, fontSize: 12, lineHeight: 17 },
   locationCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
     backgroundColor: FLEET_COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: FLEET_COLORS.border,
     padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   locationTextWrap: { flex: 1, gap: 4 },
   sectionLabel: {
@@ -377,12 +424,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: FLEET_COLORS.primary + '1A',
+    backgroundColor: FLEET_COLORS.primary + '14',
     borderWidth: 1,
     borderColor: FLEET_COLORS.primary + '55',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   locationBtnDisabled: { opacity: 0.5 },
   locationBtnText: {
@@ -392,10 +439,15 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: FLEET_COLORS.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: FLEET_COLORS.border,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   saveBtn: {
     flexDirection: 'row',

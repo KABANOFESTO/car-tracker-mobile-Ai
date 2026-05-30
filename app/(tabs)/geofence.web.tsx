@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   ScrollView,
   StatusBar,
@@ -47,6 +48,20 @@ export default function GeofenceScreenWeb() {
     setLocating(true);
     setLocationHint('Looking for a usable location...');
     try {
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        setLocationHint('Location services are turned off. Enable them or open the mobile app to tap the map.');
+        Alert.alert(
+          'Location Services Off',
+          'Turn on device location services for quick placement, or continue with manual setup.',
+          [
+            { text: 'Open Settings', onPress: () => Linking.openSettings().catch(() => undefined) },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+
       const lastKnown = await Location.getLastKnownPositionAsync();
       if (lastKnown) {
         setLat(lastKnown.coords.latitude.toFixed(6));
@@ -59,6 +74,7 @@ export default function GeofenceScreenWeb() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLocationHint('Location access was not granted. Save the other settings and use the mobile app to pick the center.');
+        Alert.alert('Permission Needed', 'We could not use your live location. You can still complete the rest of the settings now.');
         return;
       }
 
@@ -126,6 +142,16 @@ export default function GeofenceScreenWeb() {
           </View>
         ) : (
           <>
+            <View style={styles.mapHelpCard}>
+              <Ionicons name="map-outline" size={18} color={FLEET_COLORS.primary} />
+              <View style={styles.mapHelpTextWrap}>
+                <Text style={styles.mapHelpTitle}>Map-first geofence setup</Text>
+                <Text style={styles.mapHelpText}>
+                  The mobile app lets you place the geofence center directly on the map. Web keeps the same settings visible and ready.
+                </Text>
+              </View>
+            </View>
+
             <GeofencePreview
               mapRef={{ current: null }}
               latitude={parseFloat(lat) || 0}
@@ -299,6 +325,19 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   loadingBox: { alignItems: 'center', gap: 12, marginTop: 60 },
   loadingText: { color: FLEET_COLORS.textSecondary, fontSize: 14 },
+  mapHelpCard: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    backgroundColor: FLEET_COLORS.primary + '10',
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.primary + '26',
+    borderRadius: 16,
+    padding: 14,
+  },
+  mapHelpTextWrap: { flex: 1, gap: 4 },
+  mapHelpTitle: { color: FLEET_COLORS.textPrimary, fontSize: 14, fontWeight: '700' },
+  mapHelpText: { color: FLEET_COLORS.textSecondary, fontSize: 12, lineHeight: 17 },
   locationCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
 import { GeofenceConfig } from '@/constants/types';
-import { subscribeConfig, getGeofenceConfig, updateGeofenceConfig } from '@/services/configService';
+import { getGeofenceConfig, subscribeConfig, updateGeofenceConfig } from '@/services/configService';
 import { setSpeedThreshold } from '@/services/thingspeakService';
+import { useEffect, useState } from 'react';
 
 export function useGeofenceConfig() {
   const [config, setConfig] = useState<GeofenceConfig | null>(null);

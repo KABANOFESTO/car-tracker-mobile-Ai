@@ -42,8 +42,6 @@ export default function VehicleDetailScreen() {
   const vehicle = vehicles.find((v) => v.id === id);
 
   const [name, setName] = useState("");
-  const [channelId, setChannelId] = useState("");
-  const [readApiKey, setReadApiKey] = useState("");
   const [type, setType] = useState<VehicleType | "">("");
   const [licensePlate, setLicensePlate] = useState("");
   const [driver, setDriver] = useState("");
@@ -62,13 +60,11 @@ export default function VehicleDetailScreen() {
   useEffect(() => {
     if (vehicle) {
       setName(vehicle.name);
-      setChannelId(String(vehicle.channelId));
-      setReadApiKey(vehicle.readApiKey);
       setType(vehicle.type);
       setLicensePlate(vehicle.licensePlate);
       setDriver(vehicle.driver ?? "");
     }
-  }, [vehicle?.id]);
+  }, [vehicle]);
 
   function mark() {
     setDirty(true);
@@ -77,8 +73,6 @@ export default function VehicleDetailScreen() {
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = "Name is required";
-    if (!channelId.trim() || isNaN(Number(channelId)) || Number(channelId) <= 0) e.channelId = "Enter a valid Channel ID";
-    if (!readApiKey.trim() || readApiKey.trim().length !== 16) e.readApiKey = "Read API Key must be 16 characters";
     if (!type) e.type = "Select a vehicle type";
     if (!licensePlate.trim()) e.licensePlate = "License plate is required";
     setErrors(e);
@@ -86,13 +80,14 @@ export default function VehicleDetailScreen() {
   }
 
   async function handleSave() {
+    if (!vehicle) return;
     if (!validate()) return;
     setSaving(true);
     try {
       await updateVehicle(id!, {
         name: name.trim(),
-        channelId: Number(channelId.trim()),
-        readApiKey: readApiKey.trim(),
+        channelId: vehicle.channelId,
+        readApiKey: vehicle.readApiKey,
         type: type as VehicleType,
         licensePlate: licensePlate.trim().toUpperCase(),
         driver: driver.trim() || undefined
@@ -202,8 +197,15 @@ export default function VehicleDetailScreen() {
       <Text style={styles.sectionLabel}>VEHICLE DETAILS</Text>
       <View style={styles.section}>
         <InlineField label="Name" value={name} onChangeText={(value) => { setName(value); mark(); }} placeholder="e.g. Truck Alpha" error={errors.name} />
-        <InlineField label="Channel ID" value={channelId} onChangeText={(value) => { setChannelId(value.replace(/[^0-9]/g, "")); mark(); }} placeholder="e.g. 3316972" error={errors.channelId} keyboardType="number-pad" />
-        <InlineField label="Read API Key" value={readApiKey} onChangeText={(value) => { setReadApiKey(value.toUpperCase().slice(0, 16)); mark(); }} placeholder="16 characters" error={errors.readApiKey} monospace hint={`${readApiKey.length}/16`} />
+        <View style={styles.lockedInfo}>
+          <View style={styles.lockedInfoRow}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={FLEET_COLORS.primary} />
+            <Text style={styles.lockedInfoTitle}>ThingSpeak connection is managed automatically</Text>
+          </View>
+          <Text style={styles.lockedInfoText}>
+            The vehicle uses the shared channel and read key behind the scenes, so owners only edit operational details here.
+          </Text>
+        </View>
         <InlineField label="License Plate" value={licensePlate} onChangeText={(value) => { setLicensePlate(value); mark(); }} placeholder="e.g. RAC 123A" error={errors.licensePlate} autoCapitalize="characters" />
         <InlineField label="Driver" value={driver} onChangeText={(value) => { setDriver(value); mark(); }} placeholder="Optional" />
 
@@ -444,6 +446,16 @@ const styles = StyleSheet.create({
     borderColor: FLEET_COLORS.border,
     overflow: "hidden"
   },
+  lockedInfo: {
+    gap: 6,
+    padding: 14,
+    backgroundColor: FLEET_COLORS.primary + "12",
+    borderBottomWidth: 1,
+    borderBottomColor: FLEET_COLORS.border
+  },
+  lockedInfoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  lockedInfoTitle: { color: FLEET_COLORS.textPrimary, fontSize: 13, fontWeight: "700" },
+  lockedInfoText: { color: FLEET_COLORS.textSecondary, fontSize: 12, lineHeight: 18 },
   securityCard: {
     backgroundColor: FLEET_COLORS.surface,
     borderRadius: 12,

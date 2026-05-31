@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -146,7 +146,7 @@ export default function ReportsScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/reports/export',
-                  params: { year: String(year), month: String(month) },
+                  params: { year: String(year), month: String(month), format: 'csv' },
                 } as never)
               }
             >
@@ -155,7 +155,12 @@ export default function ReportsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.exportBtn, { borderColor: FLEET_COLORS.green }]}
-              onPress={() => Alert.alert('PDF export', 'CSV export is implemented in-app. PDF formatting needs a print/share module added to the project.')}
+              onPress={() =>
+                router.push({
+                  pathname: '/reports/export',
+                  params: { year: String(year), month: String(month), format: 'pdf' },
+                } as never)
+              }
             >
               <Ionicons name="document-text-outline" size={14} color={FLEET_COLORS.green} />
               <Text style={[styles.exportLabel, { color: FLEET_COLORS.green }]}>PDF</Text>

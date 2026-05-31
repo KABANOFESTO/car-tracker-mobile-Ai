@@ -5,7 +5,7 @@ import { Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActiveFleetSheet } from "@/components/fleet/ActiveFleetSheet";
-import { FleetMap, FleetMapRef } from "@/components/map/FleetMap";
+import { FleetMap, FleetMapRef } from "@/components/map/FleetMap.native";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { FLEET_COLORS } from "@/constants/theme";
 import { useAuthSession } from "@/hooks/useAuthSession";

@@ -6,6 +6,7 @@ import {
   TripPoint,
   TripReplay,
 } from '@/constants/types';
+import { buildReportCsv } from '@/services/reportExportService';
 
 const BASE_URL = process.env.EXPO_PUBLIC_THINGSPEAK_BASE_URL ?? 'https://api.thingspeak.com';
 const STORAGE_KEY = 'fleetpulse:vehicles';
@@ -306,29 +307,9 @@ export async function exportFeedHistoryCsv(
   month: number
 ): Promise<string> {
   const summaries = await getVehicleFeedHistory(vehicleId, year, month);
-  const header = [
-    'Vehicle',
-    'Date',
-    'DistanceKm',
-    'MaxSpeedKmh',
-    'DurationMinutes',
-    'EntryCount',
-    'AverageHdop',
-    'FenceBreaches',
-  ];
-
-  const rows = summaries.map((summary) => [
-    summary.vehicleName,
-    summary.date,
-    summary.estimatedDistanceKm.toFixed(2),
-    summary.maxSpeed.toFixed(1),
-    String(summary.durationMinutes),
-    String(summary.entryCount),
-    summary.avgHdop.toFixed(2),
-    String(summary.fenceBreachCount),
-  ]);
-
-  return [header, ...rows]
-    .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
-    .join('\n');
+  return buildReportCsv({
+    summaries,
+    periodLabel: `${year}-${String(month).padStart(2, '0')}`,
+    scopeLabel: vehicleId ? 'Selected vehicle' : 'Fleet',
+  });
 }

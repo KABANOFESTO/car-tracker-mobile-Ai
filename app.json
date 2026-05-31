@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "cartracker",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
@@ -67,7 +67,10 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "7b2b9166-42e1-4be2-beb5-0a49fe64b32d"
+      }
     }
   }
 }

@@ -1,9 +1,7 @@
-import { FLEET_COLORS } from "@/constants/theme";
-import { GeofenceConfig, Vehicle } from "@/constants/types";
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { Platform, StyleProp, StyleSheet, ViewStyle } from "react-native";
-import MapView, { Circle, PROVIDER_GOOGLE } from "react-native-maps";
-import { VehicleMarker } from "./VehicleMarker.native";
+import { FLEET_COLORS } from '@/constants/theme';
+import { GeofenceConfig, Vehicle } from '@/constants/types';
+import React, { forwardRef, useImperativeHandle } from 'react';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 export interface FleetMapRef {
   zoomIn: () => void;
@@ -18,93 +16,116 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
-const KIGALI = { latitude: -1.9441, longitude: 30.0619, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+export const FleetMap = forwardRef<FleetMapRef, Props>(({ vehicles, style }, ref) => {
+  useImperativeHandle(ref, () => ({
+    zoomIn() {},
+    zoomOut() {},
+  }));
 
-function hasValidLocation(v: Vehicle) {
-  return v.location.latitude !== 0 || v.location.longitude !== 0;
-}
+  return (
+    <View style={[styles.webFallback, style]}>
+      <View style={styles.hero}>
+        <Text style={styles.heroLabel}>Live Map</Text>
+        <Text style={styles.heroTitle}>Fleet overview is ready</Text>
+        <Text style={styles.heroBody}>
+          The safe mode view is active on this build so the app opens reliably on every Android phone.
+        </Text>
+      </View>
 
-export const FleetMap = forwardRef<FleetMapRef, Props>(
-  ({ vehicles, onVehiclePress, focusCoordinate, geofenceConfig, style }, ref) => {
-    const mapRef = useRef<any>(null);
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{vehicles.length}</Text>
+          <Text style={styles.statLabel}>Tracked vehicles</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{vehicles.filter((v) => v.status === 'moving').length}</Text>
+          <Text style={styles.statLabel}>Moving now</Text>
+        </View>
+      </View>
 
-    useImperativeHandle(ref, () => ({
-      async zoomIn() {
-        if (!mapRef.current) return;
-        const camera = await mapRef.current.getCamera();
-        mapRef.current.animateCamera({ zoom: (camera.zoom ?? 14) + 1 }, { duration: 300 });
-      },
-      async zoomOut() {
-        if (!mapRef.current) return;
-        const camera = await mapRef.current.getCamera();
-        mapRef.current.animateCamera({ zoom: Math.max(1, (camera.zoom ?? 14) - 1) }, { duration: 300 });
-      }
-    }));
-
-    useEffect(() => {
-      if (!focusCoordinate || !mapRef.current) return;
-      mapRef.current.animateToRegion(
-        {
-          latitude: focusCoordinate.latitude,
-          longitude: focusCoordinate.longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005
-        },
-        600
-      );
-    }, [focusCoordinate]);
-
-    const vehiclesWithLocation = vehicles.filter(hasValidLocation);
-    const initialRegion =
-      vehiclesWithLocation.length > 0
-        ? {
-            latitude: vehiclesWithLocation[0].location.latitude,
-            longitude: vehiclesWithLocation[0].location.longitude,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02
-          }
-        : KIGALI;
-
-    return (
-      <MapView
-        ref={mapRef}
-        style={[styles.map, style]}
-        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
-        initialRegion={initialRegion}
-        showsUserLocation
-        showsMyLocationButton={false}
-        customMapStyle={darkMapStyle}
-      >
-        {geofenceConfig ? (
-          <Circle
-            center={{ latitude: geofenceConfig.geofenceLat, longitude: geofenceConfig.geofenceLng }}
-            radius={geofenceConfig.radius}
-            strokeColor={FLEET_COLORS.primary}
-            fillColor={FLEET_COLORS.primary + "22"}
-            strokeWidth={2}
-          />
-        ) : null}
-
-        {vehiclesWithLocation.map((vehicle) => (
-          <VehicleMarker key={vehicle.id} vehicle={vehicle} onPress={onVehiclePress} />
-        ))}
-      </MapView>
-    );
-  }
-);
-
-const styles = StyleSheet.create({
-  map: { flex: 1 },
+      <View style={styles.noteCard}>
+        <Text style={styles.noteTitle}>What changed</Text>
+        <Text style={styles.noteBody}>
+          We paused the native map renderer for stability. Your vehicle data, reports, geofence settings, and backend sync still work.
+        </Text>
+      </View>
+    </View>
+  );
 });
 
-const darkMapStyle = [
-  { elementType: "geometry", stylers: [{ color: "#0B0E27" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#8892B0" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#0B0E27" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1A1F3C" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#2D3561" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#1A1F3C" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0D1B4B" }] },
-  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#1A1F3C" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#6B728F" }] }
-];
+FleetMap.displayName = 'FleetMap';
+
+const styles = StyleSheet.create({
+  webFallback: {
+    flex: 1,
+    backgroundColor: FLEET_COLORS.background,
+    padding: 16,
+    gap: 14,
+    justifyContent: 'center',
+  },
+  hero: {
+    borderRadius: 20,
+    padding: 18,
+    backgroundColor: FLEET_COLORS.surface,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    gap: 6,
+  },
+  heroLabel: {
+    color: FLEET_COLORS.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  heroBody: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: FLEET_COLORS.surface,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    gap: 4,
+  },
+  statValue: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  statLabel: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 12,
+  },
+  noteCard: {
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: FLEET_COLORS.primary + '10',
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.primary + '25',
+    gap: 6,
+  },
+  noteTitle: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  noteBody: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+});

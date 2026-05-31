@@ -9,7 +9,9 @@
         "EXPO_PUBLIC_THINGSPEAK_POLL_INTERVAL_MS": "15000",
         "EXPO_PUBLIC_THINGSPEAK_CONFIG_CHANNEL_ID": "3317857",
         "EXPO_PUBLIC_THINGSPEAK_CONFIG_READ_API_KEY": "VJ1YTGGPHZQE6SEJ",
-        "EXPO_PUBLIC_THINGSPEAK_CONFIG_WRITE_API_KEY": "EG0Z5MXLSAM9F3RP"
+        "EXPO_PUBLIC_THINGSPEAK_CONFIG_WRITE_API_KEY": "EG0Z5MXLSAM9F3RP",
+        "EXPO_PUBLIC_BACKEND_BASE_URL": "https://car-tracker-mobile-ai.onrender.com",
+        "EXPO_PUBLIC_BACKEND_API_KEY": "replace_with_shared_mobile_api_key"
       }
     },
     "preview2": {
@@ -23,6 +25,16 @@
     "preview4": {
       "distribution": "internal"
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_THINGSPEAK_BASE_URL": "https://api.thingspeak.com",
+        "EXPO_PUBLIC_THINGSPEAK_POLL_INTERVAL_MS": "15000",
+        "EXPO_PUBLIC_THINGSPEAK_CONFIG_CHANNEL_ID": "3317857",
+        "EXPO_PUBLIC_THINGSPEAK_CONFIG_READ_API_KEY": "VJ1YTGGPHZQE6SEJ",
+        "EXPO_PUBLIC_THINGSPEAK_CONFIG_WRITE_API_KEY": "EG0Z5MXLSAM9F3RP",
+        "EXPO_PUBLIC_BACKEND_BASE_URL": "https://car-tracker-mobile-ai.onrender.com",
+        "EXPO_PUBLIC_BACKEND_API_KEY": "replace_with_shared_mobile_api_key"
+      }
+    }
   }
 }

@@ -6,9 +6,9 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, useColorScheme, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Animated, { FadeOut } from "react-native-reanimated";
-import "react-native-reanimated";
 import { AuthSessionProvider, useAuthSession } from "@/hooks/useAuthSession";
 import { configureNotifications, requestNotificationPermissions } from "@/services/notificationService";
 import { useBackendSync } from "@/hooks/useBackendSync";
@@ -190,9 +190,11 @@ function RootLayout() {
 
 export default function AppRoot() {
   return (
-    <AuthSessionProvider>
-      <RootLayout />
-    </AuthSessionProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthSessionProvider>
+        <RootLayout />
+      </AuthSessionProvider>
+    </GestureHandlerRootView>
   );
 }
 

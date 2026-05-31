@@ -1,42 +1,30 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Marker } from 'react-native-maps';
-import { Vehicle } from '@/constants/types';
+import { StyleSheet, Text, View } from 'react-native';
+
 import { FLEET_COLORS } from '@/constants/theme';
+import { Vehicle } from '@/constants/types';
 
 interface Props {
   vehicle: Vehicle;
   onPress?: (vehicle: Vehicle) => void;
 }
 
-function markerColor(vehicle: Vehicle): string {
-  if (vehicle.isOutsideFence) return FLEET_COLORS.orange;
-  switch (vehicle.status) {
-    case 'moving': return FLEET_COLORS.green;
-    case 'idle': return FLEET_COLORS.orange;
-    case 'offline': return FLEET_COLORS.textSecondary;
-  }
-}
-
-export function VehicleMarker({ vehicle, onPress }: Props) {
-  const color = markerColor(vehicle);
+export function VehicleMarker({ vehicle }: Props) {
+  const color = vehicle.isOutsideFence
+    ? FLEET_COLORS.orange
+    : vehicle.status === 'moving'
+      ? FLEET_COLORS.green
+      : vehicle.status === 'idle'
+        ? FLEET_COLORS.orange
+        : FLEET_COLORS.textSecondary;
 
   return (
-    <Marker
-      key={vehicle.id}
-      coordinate={vehicle.location}
-      onPress={() => onPress?.(vehicle)}
-      tracksViewChanges={false}
-    >
-      <View style={[styles.markerContainer, { borderColor: color }]}>
-        <View style={[styles.dot, { backgroundColor: color }]} />
-        {vehicle.isOutsideFence && (
-          <Ionicons name="warning-outline" size={10} color={FLEET_COLORS.orange} />
-        )}
-        <Text style={styles.label} numberOfLines={1}>{vehicle.name}</Text>
-      </View>
-    </Marker>
+    <View style={[styles.markerContainer, { borderColor: color }]}>
+      <View style={[styles.dot, { backgroundColor: color }]} />
+      <Text style={styles.label} numberOfLines={1}>
+        {vehicle.name}
+      </Text>
+    </View>
   );
 }
 

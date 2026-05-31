@@ -4,7 +4,7 @@ import { Platform, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from "expo-router";
 
-import { FleetMap } from "@/components/map/FleetMap";
+import { FleetMap } from "@/components/map/FleetMap.native";
 import { FLEET_COLORS } from "@/constants/theme";
 import { useGeofenceConfig } from "@/hooks/useGeofenceConfig";
 import { useVehicles } from "@/hooks/useVehicles";

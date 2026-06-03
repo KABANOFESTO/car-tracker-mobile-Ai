@@ -82,7 +82,14 @@ export default function TripReplayScreen() {
         </View>
       ) : (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <TripReplayMap points={replay.points} activePoint={activePoint} />
+          <TripReplayMap
+            points={replay.points}
+            activePoint={activePoint}
+            onPointPress={(index) => {
+              setPlaying(false);
+              setActiveIndex(index);
+            }}
+          />
 
           <View style={styles.summaryRow}>
             <Stat value={`${replay.distanceKm.toFixed(1)} km`} label="Distance" />

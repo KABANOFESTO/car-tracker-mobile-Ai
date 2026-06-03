@@ -1,0 +1,11 @@
+**/node_modules/
+**/.expo/
+**/dist/
+**/web-build/
+**/g/
+**/android/.gradle/
+**/android/app/build/
+**/android/.cxx/
+**/android/.gradle-cache/
+**/android/.gradle-user-home/
+*.log

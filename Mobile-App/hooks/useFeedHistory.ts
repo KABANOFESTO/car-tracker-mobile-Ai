@@ -13,6 +13,12 @@ export function useFeedHistory(vehicleId: string | null, year: number, month: nu
     dayCount: 0,
     fenceBreachDays: 0,
     distanceChange: 0,
+    averageDailyDistanceKm: 0,
+    averageDailyEntries: 0,
+    averageHdop: 0,
+    activeVehicleCount: 0,
+    breachRatePercent: 0,
+    longestTripMinutes: 0,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +45,11 @@ export function useFeedHistory(vehicleId: string | null, year: number, month: nu
         const prevDistanceKm = previous.reduce((s, d) => s + d.estimatedDistanceKm, 0);
         const maxSpeedKmh = current.reduce((s, d) => Math.max(s, d.maxSpeed), 0);
         const fenceBreachDays = current.filter(d => d.fenceBreachCount > 0).length;
+        const totalEntries = current.reduce((sum, summary) => sum + summary.entryCount, 0);
+        const averageHdop = current.length > 0 ? current.reduce((sum, summary) => sum + summary.avgHdop, 0) / current.length : 0;
+        const activeVehicleCount = new Set(current.map((summary) => summary.vehicleId)).size;
+        const longestTripMinutes = current.reduce((longest, summary) => Math.max(longest, summary.durationMinutes), 0);
+        const breachRatePercent = current.length > 0 ? Math.round((fenceBreachDays / current.length) * 100) : 0;
         const distanceChange =
           prevDistanceKm === 0
             ? 0
@@ -50,6 +61,12 @@ export function useFeedHistory(vehicleId: string | null, year: number, month: nu
           dayCount: current.length,
           fenceBreachDays,
           distanceChange,
+          averageDailyDistanceKm: current.length > 0 ? Math.round((totalDistanceKm / current.length) * 10) / 10 : 0,
+          averageDailyEntries: current.length > 0 ? Math.round((totalEntries / current.length) * 10) / 10 : 0,
+          averageHdop: Math.round(averageHdop * 100) / 100,
+          activeVehicleCount,
+          breachRatePercent,
+          longestTripMinutes,
         });
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load feed history');

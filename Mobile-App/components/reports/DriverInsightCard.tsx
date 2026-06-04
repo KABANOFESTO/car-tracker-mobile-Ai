@@ -33,12 +33,13 @@ export function DriverInsightCard({ insight }: Props) {
       <View style={styles.metrics}>
         <Metric label="Distance" value={`${insight.totalDistanceKm.toFixed(1)} km`} icon="navigate-outline" />
         <Metric label="Active" value={`${insight.activeMinutes} min`} icon="time-outline" />
+        <Metric label="Avg Speed" value={`${insight.averageSpeedKmh.toFixed(1)} km/h`} icon="speedometer-outline" />
         <Metric label="Breaches" value={String(insight.geofenceBreaches)} icon="warning-outline" />
         <Metric label="Overspeed" value={String(insight.overspeedEvents)} icon="speedometer-outline" />
       </View>
 
       <Text style={styles.footer}>
-        Avg {insight.averageSpeedKmh.toFixed(1)} km/h • {insight.nightTrips} night trip{insight.nightTrips === 1 ? '' : 's'}
+        Idle estimate {insight.idleMinutesEstimate} min • {insight.nightTrips} night trip{insight.nightTrips === 1 ? '' : 's'}
       </Text>
     </View>
   );

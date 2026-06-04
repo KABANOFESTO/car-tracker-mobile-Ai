@@ -8,7 +8,7 @@ interface Props {
   value: string;
   unit: string;
   change: number; // percent, positive = up, negative = down
-  icon: 'speedometer-outline' | 'flame-outline' | 'navigate-outline';
+  icon: 'speedometer-outline' | 'flame-outline' | 'navigate-outline' | 'analytics-outline' | 'bar-chart-outline' | 'stats-chart-outline';
 }
 
 export function StatsCard({ title, value, unit, change, icon }: Props) {

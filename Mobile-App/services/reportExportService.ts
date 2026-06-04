@@ -41,6 +41,7 @@ export function buildReportCsv(payload: Pick<ReportExportPayload, 'summaries' | 
     'Vehicle',
     'Date',
     'DistanceKm',
+    'AverageSpeedKmh',
     'MaxSpeedKmh',
     'DurationMinutes',
     'EntryCount',
@@ -55,6 +56,7 @@ export function buildReportCsv(payload: Pick<ReportExportPayload, 'summaries' | 
       summary.vehicleName,
       summary.date,
       summary.estimatedDistanceKm.toFixed(2),
+      summary.averageSpeedKmh.toFixed(1),
       summary.maxSpeed.toFixed(1),
       summary.durationMinutes,
       summary.entryCount,
@@ -71,6 +73,7 @@ export function buildReportCsv(payload: Pick<ReportExportPayload, 'summaries' | 
         'No records found',
         '',
         '0.00',
+        '0.0',
         '0.0',
         '0',
         '0',
@@ -112,6 +115,7 @@ export function buildReportPdfHtml(payload: ReportExportPayload) {
         <td>${htmlEscape(summary.vehicleName)}</td>
         <td>${htmlEscape(summary.date)}</td>
         <td>${htmlEscape(summary.estimatedDistanceKm.toFixed(2))} km</td>
+        <td>${htmlEscape(summary.averageSpeedKmh.toFixed(1))} km/h</td>
         <td>${htmlEscape(summary.maxSpeed.toFixed(1))} km/h</td>
         <td>${htmlEscape(String(summary.durationMinutes))} min</td>
         <td>${htmlEscape(String(summary.entryCount))}</td>
@@ -119,7 +123,7 @@ export function buildReportPdfHtml(payload: ReportExportPayload) {
         <td>${htmlEscape(String(summary.fenceBreachCount))}</td>
       </tr>
     `).join('')
-    : `<tr><td colspan="8" class="empty">No movement records were found for this period.</td></tr>`;
+    : `<tr><td colspan="9" class="empty">No movement records were found for this period.</td></tr>`;
 
   const insightRows = payload.driverInsights.length
     ? payload.driverInsights.map((insight) => `
@@ -128,18 +132,25 @@ export function buildReportPdfHtml(payload: ReportExportPayload) {
         <td>${htmlEscape(insight.driverName)}</td>
         <td>${htmlEscape(insight.totalDistanceKm.toFixed(1))} km</td>
         <td>${htmlEscape(insight.averageSpeedKmh.toFixed(1))} km/h</td>
+        <td>${htmlEscape(String(insight.idleMinutesEstimate))} min</td>
         <td>${htmlEscape(String(insight.overspeedEvents))}</td>
         <td>${htmlEscape(String(insight.geofenceBreaches))}</td>
         <td>${htmlEscape(String(insight.riskScore))}/100</td>
       </tr>
     `).join('')
-    : `<tr><td colspan="7" class="empty">No driver insights available yet.</td></tr>`;
+    : `<tr><td colspan="8" class="empty">No driver insights available yet.</td></tr>`;
 
   const totalDistance = payload.stats.totalDistanceKm.toFixed(1);
   const maxSpeed = payload.stats.maxSpeedKmh.toFixed(1);
   const dayCount = String(payload.stats.dayCount);
   const breachDays = String(payload.stats.fenceBreachDays);
   const distanceChange = percent(payload.stats.distanceChange);
+  const avgDailyDistance = payload.stats.averageDailyDistanceKm.toFixed(1);
+  const avgDailyEntries = payload.stats.averageDailyEntries.toFixed(1);
+  const avgHdop = payload.stats.averageHdop.toFixed(2);
+  const activeVehicles = String(payload.stats.activeVehicleCount);
+  const breachRate = `${payload.stats.breachRatePercent}%`;
+  const longestTrip = `${payload.stats.longestTripMinutes} min`;
 
   return `
     <!DOCTYPE html>
@@ -183,7 +194,7 @@ export function buildReportPdfHtml(payload: ReportExportPayload) {
           }
           .metrics {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(6, minmax(0, 1fr));
             gap: 12px;
             margin: 18px 0 22px;
           }
@@ -264,6 +275,12 @@ export function buildReportPdfHtml(payload: ReportExportPayload) {
             ${renderSummaryCard('Active Days', dayCount, 'Days with trip history')}
             ${renderSummaryCard('Breach Days', breachDays, 'Days with geofence activity')}
             ${renderSummaryCard('Distance Change', distanceChange, 'Compared with the previous month')}
+            ${renderSummaryCard('Avg Daily Distance', `${avgDailyDistance} km`, 'Per tracked day')}
+            ${renderSummaryCard('Avg Entries', avgDailyEntries, 'Average pings per day')}
+            ${renderSummaryCard('Fleet Avg HDOP', avgHdop, 'Lower is better')}
+            ${renderSummaryCard('Active Vehicles', activeVehicles, 'Vehicles with records')}
+            ${renderSummaryCard('Breach Rate', breachRate, 'Tracked days with breaches')}
+            ${renderSummaryCard('Longest Trip', longestTrip, 'Longest recorded trip duration')}
           </div>
 
           <div class="section">
@@ -274,6 +291,7 @@ export function buildReportPdfHtml(payload: ReportExportPayload) {
                   <th>Vehicle</th>
                   <th>Date</th>
                   <th>Distance</th>
+                  <th>Avg Speed</th>
                   <th>Max Speed</th>
                   <th>Duration</th>
                   <th>Entries</th>
@@ -294,6 +312,7 @@ export function buildReportPdfHtml(payload: ReportExportPayload) {
                   <th>Driver</th>
                   <th>Distance</th>
                   <th>Avg Speed</th>
+                  <th>Idle Est.</th>
                   <th>Overspeed</th>
                   <th>Breaches</th>
                   <th>Risk Score</th>

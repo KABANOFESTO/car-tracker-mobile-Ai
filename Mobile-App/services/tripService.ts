@@ -90,12 +90,14 @@ function toTripPoints(feeds: ThingSpeakFeed[], vehicle: PersistedVehicle): TripP
 function summarisePoints(points: TripPoint[], vehicleId: string, vehicleName: string, date: string): FeedSummary {
   let distanceKm = 0;
   let maxSpeed = 0;
+  let speedSum = 0;
   let hdopSum = 0;
   let hdopCount = 0;
   let fenceBreachCount = 0;
 
   for (let index = 0; index < points.length; index++) {
     const point = points[index];
+    speedSum += point.speed;
     maxSpeed = Math.max(maxSpeed, point.speed);
     if (point.hdop < 99) {
       hdopSum += point.hdop;
@@ -111,6 +113,7 @@ function summarisePoints(points: TripPoint[], vehicleId: string, vehicleName: st
 
   const first = new Date(points[0]?.timestamp ?? `${date}T00:00:00Z`).getTime();
   const last = new Date(points[points.length - 1]?.timestamp ?? `${date}T00:00:00Z`).getTime();
+  const durationMinutes = Math.max(0, Math.round((last - first) / 60000));
 
   return {
     id: `${vehicleId}-${date}`,
@@ -119,8 +122,9 @@ function summarisePoints(points: TripPoint[], vehicleId: string, vehicleName: st
     date,
     entryCount: points.length,
     maxSpeed: Math.round(maxSpeed * 10) / 10,
+    averageSpeedKmh: points.length > 0 ? Math.round((speedSum / points.length) * 10) / 10 : 0,
     estimatedDistanceKm: Math.round(distanceKm * 100) / 100,
-    durationMinutes: Math.max(0, Math.round((last - first) / 60000)),
+    durationMinutes,
     avgHdop: hdopCount > 0 ? Math.round((hdopSum / hdopCount) * 100) / 100 : 99,
     fenceBreachCount,
   };
@@ -178,6 +182,9 @@ function calculateDriverInsight(vehicle: PersistedVehicle, summaries: FeedSummar
   const activeMinutes = summaries.reduce((sum, summary) => sum + summary.durationMinutes, 0);
   const geofenceBreaches = summaries.reduce((sum, summary) => sum + summary.fenceBreachCount, 0);
   const maxSpeedKmh = summaries.reduce((sum, summary) => Math.max(sum, summary.maxSpeed), 0);
+  const averageSpeedKmh = summaries.length > 0
+    ? Math.round((summaries.reduce((sum, summary) => sum + summary.averageSpeedKmh, 0) / summaries.length) * 10) / 10
+    : 0;
   const overspeedEvents = replays.reduce(
     (sum, replay) => sum + replay.points.filter((point) => point.speed >= OVERSPEED_THRESHOLD_KMH).length,
     0
@@ -186,7 +193,6 @@ function calculateDriverInsight(vehicle: PersistedVehicle, summaries: FeedSummar
     const startHour = new Date(replay.startTime).getHours();
     return startHour >= 21 || startHour <= 5;
   }).length;
-  const averageSpeedKmh = activeMinutes > 0 ? Math.round((totalDistanceKm / (activeMinutes / 60)) * 10) / 10 : 0;
   const idleMinutesEstimate = Math.max(0, Math.round(activeMinutes * 0.2));
 
   const riskScore = Math.min(

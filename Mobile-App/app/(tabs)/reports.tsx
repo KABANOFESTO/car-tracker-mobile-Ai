@@ -103,6 +103,20 @@ export default function ReportsScreen() {
             change={0}
             icon="speedometer-outline"
           />
+          <StatsCard
+            title="Avg Daily"
+            value={stats.averageDailyDistanceKm.toFixed(1)}
+            unit="km"
+            change={0}
+            icon="stats-chart-outline"
+          />
+          <StatsCard
+            title="Fleet Avg"
+            value={stats.averageHdop.toFixed(2)}
+            unit="HDOP"
+            change={0}
+            icon="bar-chart-outline"
+          />
         </View>
 
         {highestRiskDriver ? (
@@ -195,6 +209,25 @@ export default function ReportsScreen() {
           <Text style={styles.sectionSubtitle}>Distance, risk score, overspeeding, and night movement patterns</Text>
         </View>
 
+        <View style={styles.insightGrid}>
+          <View style={styles.insightTile}>
+            <Text style={styles.insightValue}>{stats.activeVehicleCount}</Text>
+            <Text style={styles.insightLabel}>Vehicles tracked</Text>
+          </View>
+          <View style={styles.insightTile}>
+            <Text style={styles.insightValue}>{stats.averageDailyEntries.toFixed(1)}</Text>
+            <Text style={styles.insightLabel}>Avg pings / day</Text>
+          </View>
+          <View style={styles.insightTile}>
+            <Text style={styles.insightValue}>{stats.longestTripMinutes}</Text>
+            <Text style={styles.insightLabel}>Longest trip min</Text>
+          </View>
+          <View style={styles.insightTile}>
+            <Text style={styles.insightValue}>{stats.breachRatePercent}%</Text>
+            <Text style={styles.insightLabel}>Breach rate</Text>
+          </View>
+        </View>
+
         {driverInsights.length === 0 && !loading ? (
           <Text style={styles.loading}>No driver insights available yet.</Text>
         ) : (
@@ -245,7 +278,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statsRow: { flexDirection: 'row', gap: 12 },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  insightGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  insightTile: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    minWidth: 145,
+    backgroundColor: FLEET_COLORS.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    padding: 14,
+    gap: 3,
+  },
+  insightValue: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  insightLabel: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
   highlightCard: {
     backgroundColor: FLEET_COLORS.surface,
     borderRadius: 12,

@@ -40,6 +40,10 @@ export function FeedSummaryCard({ summary, onPress }: Props) {
             <Text style={styles.statValue}>{summary.estimatedDistanceKm.toFixed(1)} km</Text>
           </View>
           <View style={styles.stat}>
+            <Ionicons name="pulse-outline" size={12} color={FLEET_COLORS.primary} />
+            <Text style={styles.statValue}>{summary.averageSpeedKmh.toFixed(1)} km/h avg</Text>
+          </View>
+          <View style={styles.stat}>
             <Ionicons name="speedometer-outline" size={12} color={FLEET_COLORS.primary} />
             <Text style={styles.statValue}>{summary.maxSpeed} km/h</Text>
           </View>

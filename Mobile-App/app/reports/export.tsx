@@ -30,6 +30,7 @@ export default function ReportExportScreen() {
   const parsedMonth = Number(month);
   const periodLabel = useMemo(() => formatReportPeriod(parsedYear, parsedMonth), [parsedMonth, parsedYear]);
   const hasStarted = useRef(false);
+  const hasBegunLoading = useRef(false);
   const [status, setStatus] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
   const [details, setDetails] = useState('');
   const [fileUri, setFileUri] = useState('');
@@ -38,7 +39,13 @@ export default function ReportExportScreen() {
   const { summaries, driverInsights, stats, loading, error } = useFeedHistory(vehicleId ?? null, parsedYear, parsedMonth);
 
   useEffect(() => {
-    if (hasStarted.current || loading || error) return;
+    if (loading) {
+      hasBegunLoading.current = true;
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (hasStarted.current || loading || error || !hasBegunLoading.current) return;
 
     let cancelled = false;
     hasStarted.current = true;

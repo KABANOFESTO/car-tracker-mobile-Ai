@@ -100,6 +100,7 @@ export interface FeedSummary {
   date: string;
   entryCount: number;
   maxSpeed: number;
+  averageSpeedKmh: number;
   estimatedDistanceKm: number;
   durationMinutes: number;
   avgHdop: number;
@@ -112,6 +113,12 @@ export interface FeedStats {
   dayCount: number;
   fenceBreachDays: number;
   distanceChange: number;
+  averageDailyDistanceKm: number;
+  averageDailyEntries: number;
+  averageHdop: number;
+  activeVehicleCount: number;
+  breachRatePercent: number;
+  longestTripMinutes: number;
 }
 
 export interface DriverInsight {

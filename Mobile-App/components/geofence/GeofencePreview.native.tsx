@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { RefObject, useEffect, useMemo, useRef } from 'react';
+import React, { MutableRefObject, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Circle, Marker, MapPressEvent, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 
 import { FLEET_COLORS } from '@/constants/theme';
+import { announceMapCenter } from '@/services/voiceAssistantService';
 
 interface Props {
-  mapRef: RefObject<{ animateToRegion?: (region: Region, duration?: number) => void } | null>;
+  mapRef: MutableRefObject<{ animateToRegion?: (region: Region, duration?: number) => void } | null>;
   latitude: number;
   longitude: number;
   radius: number;
@@ -43,6 +44,7 @@ export function GeofencePreview({ mapRef, latitude, longitude, radius, onSelectC
   function updateCenter(event: MapPressEvent) {
     const next = event.nativeEvent.coordinate;
     onSelectCenter?.(next);
+    announceMapCenter(next).catch(() => undefined);
     mapInstanceRef.current?.animateToRegion(
       {
         latitude: next.latitude,
@@ -144,6 +146,7 @@ export function GeofencePreview({ mapRef, latitude, longitude, radius, onSelectC
             longitude: DEFAULT_REGION.longitude,
           };
           onSelectCenter?.(next);
+          announceMapCenter(next).catch(() => undefined);
           mapInstanceRef.current?.animateToRegion(
             {
               ...next,

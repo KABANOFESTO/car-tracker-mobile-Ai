@@ -18,7 +18,7 @@ import { AuthUser } from '@/constants/types';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useProfilePreferences } from '@/hooks/useProfilePreferences';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
-import { createAdminUser, fetchAdminUsers, updateAdminUser } from '@/services/backendApiService';
+import { createAdminUser, deleteAdminUser, fetchAdminUsers, updateAdminUser } from '@/services/backendApiService';
 
 function SummaryTile({
   label,
@@ -128,6 +128,28 @@ export default function AdminUsersScreen() {
     }
   }
 
+  function confirmDelete(user: AuthUser) {
+    Alert.alert(
+      'Delete user',
+      `Delete ${user.name}? This removes the account, active sessions, push tokens, and fleet state.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAdminUser(user.id);
+              await loadUsers(true);
+            } catch (err) {
+              Alert.alert('Delete failed', err instanceof Error ? err.message : 'Unable to delete user');
+            }
+          },
+        },
+      ]
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -204,7 +226,11 @@ export default function AdminUsersScreen() {
                     size={16}
                     color={FLEET_COLORS.textPrimary}
                   />
-                  <Text style={styles.actionButtonText}>{entry.active === false ? 'Activate account' : 'Deactivate account'}</Text>
+                  <Text style={styles.actionButtonText}>{entry.active === false ? 'Enable account' : 'Disable account'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionButton, styles.deleteActionButton]} onPress={() => confirmDelete(entry)} activeOpacity={0.85}>
+                  <Ionicons name="trash-outline" size={16} color={FLEET_COLORS.orange} />
+                  <Text style={[styles.actionButtonText, styles.deleteActionButtonText]}>Delete account</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -417,6 +443,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   actionButtonText: { color: FLEET_COLORS.textPrimary, fontWeight: '700', fontSize: 13 },
+  deleteActionButton: {
+    borderColor: FLEET_COLORS.orange + '55',
+    backgroundColor: FLEET_COLORS.orange + '10',
+  },
+  deleteActionButtonText: { color: FLEET_COLORS.orange },
   modalOverlay: {
     flex: 1,
     backgroundColor: '#040817B8',

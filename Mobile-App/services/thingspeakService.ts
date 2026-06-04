@@ -35,7 +35,8 @@ interface ThingSpeakResponse {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function deriveStatus(speed: number, lastSeen: string): VehicleStatus {
+function deriveStatus(speed: number, lastSeen: string, active = true): VehicleStatus {
+  if (!active) return "disabled";
   const ageMs = Date.now() - new Date(lastSeen).getTime();
   if (ageMs > OFFLINE_THRESHOLD_MS) return "offline";
   return speed > speedThreshold ? "moving" : "idle";
@@ -61,14 +62,17 @@ function parseFeed(feed: ThingSpeakFeed, existing: Vehicle): Partial<Vehicle> {
     hdop,
     isOutsideFence,
     lastSeen,
-    status: deriveStatus(speed, lastSeen)
+    active: existing.active ?? true,
+    status: deriveStatus(speed, lastSeen, existing.active ?? true)
   };
 }
 
 function offlineDefaults(persisted: PersistedVehicle): Vehicle {
+  const active = persisted.active ?? true;
   return {
     ...persisted,
-    status: "offline",
+    active,
+    status: deriveStatus(0, new Date(0).toISOString(), active),
     speed: 0,
     location: { latitude: 0, longitude: 0 },
     direction: 0,
@@ -100,6 +104,13 @@ async function pollAll() {
   let changed = false;
   await Promise.all(
     vehicleList.map(async (v, i) => {
+      if (v.active === false) {
+        if (v.status !== "disabled") {
+          vehicleList[i] = { ...v, status: "disabled" };
+          changed = true;
+        }
+        return;
+      }
       try {
         const update = await fetchVehicleTelemetry(v);
 
@@ -139,7 +150,7 @@ export function setSpeedThreshold(threshold: number) {
   // Re-derive status for all vehicles with current telemetry
   vehicleList = vehicleList.map((v) => ({
     ...v,
-    status: deriveStatus(v.speed, v.lastSeen)
+    status: deriveStatus(v.speed, v.lastSeen, v.active ?? true)
   }));
   notify();
 }
@@ -168,6 +179,7 @@ export function subscribeVehicles(callback: (vehicles: Vehicle[]) => void): () =
 export async function addVehicle(input: Omit<PersistedVehicle, "id">): Promise<Vehicle> {
   const newVehicle: PersistedVehicle = {
     ...input,
+    active: input.active ?? true,
     id: `v${Date.now()}`
   };
 
@@ -178,7 +190,8 @@ export async function addVehicle(input: Omit<PersistedVehicle, "id">): Promise<V
     readApiKey: v.readApiKey,
     type: v.type,
     licensePlate: v.licensePlate,
-    driver: v.driver
+    driver: v.driver,
+    active: v.active
   }));
   persisted.push(newVehicle);
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
@@ -205,18 +218,37 @@ export async function addVehicle(input: Omit<PersistedVehicle, "id">): Promise<V
 export async function updateVehicle(id: string, changes: Partial<Omit<PersistedVehicle, "id">>): Promise<void> {
   const idx = vehicleList.findIndex((v) => v.id === id);
   if (idx === -1) throw new Error(`Vehicle ${id} not found`);
-  vehicleList[idx] = { ...vehicleList[idx], ...changes };
-  const persisted: PersistedVehicle[] = vehicleList.map((v) => ({
-    id: v.id,
-    name: v.name,
-    channelId: v.channelId,
-    readApiKey: v.readApiKey,
-    type: v.type,
-    licensePlate: v.licensePlate,
-    driver: v.driver
-  }));
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+  const nextVehicle = {
+    ...vehicleList[idx],
+    ...changes,
+  };
+  nextVehicle.status = deriveStatus(nextVehicle.speed, nextVehicle.lastSeen, nextVehicle.active ?? true);
+  vehicleList[idx] = nextVehicle;
+  const persist = async () => {
+    const persisted: PersistedVehicle[] = vehicleList.map((v) => ({
+      id: v.id,
+      name: v.name,
+      channelId: v.channelId,
+      readApiKey: v.readApiKey,
+      type: v.type,
+      licensePlate: v.licensePlate,
+      driver: v.driver,
+      active: v.active
+    }));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+  };
+  await persist();
   notify();
+  if (vehicleList[idx]?.active !== false) {
+    try {
+      const update = await fetchVehicleTelemetry(vehicleList[idx]);
+      vehicleList[idx] = { ...vehicleList[idx], ...update };
+      await persist();
+      notify();
+    } catch {
+      // Keep current state until the next poll
+    }
+  }
 }
 
 export async function removeVehicle(id: string): Promise<void> {
@@ -228,7 +260,8 @@ export async function removeVehicle(id: string): Promise<void> {
     readApiKey: v.readApiKey,
     type: v.type,
     licensePlate: v.licensePlate,
-    driver: v.driver
+    driver: v.driver,
+    active: v.active
   }));
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   notify();

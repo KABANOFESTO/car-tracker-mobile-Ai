@@ -11,13 +11,15 @@ interface Props {
 }
 
 export function VehicleMarker({ vehicle, selected = false }: Props) {
-  const color = vehicle.isOutsideFence
-    ? FLEET_COLORS.orange
-    : vehicle.status === 'moving'
-      ? FLEET_COLORS.green
-      : vehicle.status === 'idle'
-        ? '#F7B955'
-        : FLEET_COLORS.textSecondary;
+  const color = vehicle.active === false || vehicle.status === 'disabled'
+    ? FLEET_COLORS.textSecondary
+    : vehicle.isOutsideFence
+      ? FLEET_COLORS.orange
+      : vehicle.status === 'moving'
+        ? FLEET_COLORS.green
+        : vehicle.status === 'idle'
+          ? '#F7B955'
+          : FLEET_COLORS.textSecondary;
 
   return (
     <View style={[styles.outer, selected && styles.outerSelected]}>
@@ -32,7 +34,11 @@ export function VehicleMarker({ vehicle, selected = false }: Props) {
               {vehicle.name}
             </Text>
             <Text style={[styles.status, { color }]} numberOfLines={1}>
-              {vehicle.status === 'moving' ? `${Math.round(vehicle.speed)} km/h` : vehicle.status}
+              {vehicle.active === false || vehicle.status === 'disabled'
+                ? 'Disabled'
+                : vehicle.status === 'moving'
+                  ? `${Math.round(vehicle.speed)} km/h`
+                  : vehicle.status}
             </Text>
           </View>
         </View>

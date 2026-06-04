@@ -1,6 +1,6 @@
 const { AppError } = require('../utils/errors');
 const VEHICLE_TYPES = ['Car', 'Truck', 'Van', 'Motorcycle', 'Bus', 'Other'];
-const VEHICLE_STATUSES = ['moving', 'idle', 'offline'];
+const VEHICLE_STATUSES = ['moving', 'idle', 'offline', 'disabled'];
 const GEOFENCE_TYPES = ['home', 'parking', 'work', 'restricted'];
 const ALERT_SEVERITIES = ['critical', 'warning', 'info'];
 const ALERT_CATEGORIES = ['geofence', 'security', 'offline', 'driving', 'system'];
@@ -46,6 +46,9 @@ function validateVehicle(vehicle, index) {
   }
   validateEnum(vehicle.type, VEHICLE_TYPES, `vehicles[${index}].type`);
   validateEnum(vehicle.status, VEHICLE_STATUSES, `vehicles[${index}].status`);
+  if (vehicle.active != null && typeof vehicle.active !== 'boolean') {
+    throw new AppError(400, `vehicles[${index}].active must be a boolean`);
+  }
   if (!isIsoTimestamp(vehicle.lastSeen)) {
     throw new AppError(400, `vehicles[${index}].lastSeen must be an ISO timestamp`);
   }

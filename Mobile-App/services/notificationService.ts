@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { AlertEvent } from '@/constants/types';
 import { markIncidentNotified } from './incidentHistoryService';
+import { announceAlertVoice } from './voiceAssistantService';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -66,5 +67,11 @@ export async function notifyForIncidents(alerts: AlertEvent[]) {
     });
 
     await markIncidentNotified(alert.id);
+    await announceAlertVoice({
+      title: alert.title,
+      vehicleName: alert.vehicleName,
+      description: alert.description,
+      severity: alert.severity,
+    });
   }
 }

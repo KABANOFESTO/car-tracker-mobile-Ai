@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Vehicle } from '@/constants/types';
 import { FLEET_COLORS } from '@/constants/theme';
+import { announceVehicleFocus } from '@/services/voiceAssistantService';
 
 interface Props {
   vehicle: Vehicle;
@@ -14,6 +15,7 @@ function statusColor(status: Vehicle['status']): string {
   switch (status) {
     case 'moving': return FLEET_COLORS.green;
     case 'idle': return FLEET_COLORS.orange;
+    case 'disabled': return FLEET_COLORS.textSecondary;
     case 'offline': return FLEET_COLORS.textSecondary;
   }
 }
@@ -22,6 +24,7 @@ function statusLabel(status: Vehicle['status']): string {
   switch (status) {
     case 'moving': return 'Moving';
     case 'idle': return 'Idle';
+    case 'disabled': return 'Disabled';
     case 'offline': return 'Offline';
   }
 }
@@ -43,11 +46,11 @@ function vehicleIcon(type: string): 'car-outline' | 'bus-outline' | 'bicycle-out
 
 export function VehicleCard({ vehicle, onFocusMap, onOpenDetails }: Props) {
   const color = statusColor(vehicle.status);
-  const isLive = vehicle.status !== 'offline';
+  const isLive = vehicle.active !== false && vehicle.status !== 'offline' && vehicle.status !== 'disabled';
   const hasLocation = vehicle.location.latitude !== 0 || vehicle.location.longitude !== 0;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, vehicle.active === false && styles.containerDisabled]}>
       <View style={[styles.iconBox, { backgroundColor: color + '22' }]}>
         <Ionicons name={vehicleIcon(vehicle.type)} size={20} color={color} />
       </View>
@@ -56,6 +59,12 @@ export function VehicleCard({ vehicle, onFocusMap, onOpenDetails }: Props) {
         <Text style={styles.name}>{vehicle.name}</Text>
         <Text style={styles.plate}>{vehicle.licensePlate}</Text>
         {vehicle.driver && <Text style={styles.driver}>{vehicle.driver}</Text>}
+        {vehicle.active === false && (
+          <View style={styles.disabledBadge}>
+            <Ionicons name="pause-circle-outline" size={10} color={FLEET_COLORS.textSecondary} />
+            <Text style={styles.disabledText}>Disabled</Text>
+          </View>
+        )}
         {isLive && (
           <View style={styles.telemetryRow}>
             <Ionicons name="radio-outline" size={10} color={FLEET_COLORS.textSecondary} />
@@ -95,7 +104,16 @@ export function VehicleCard({ vehicle, onFocusMap, onOpenDetails }: Props) {
         <View style={styles.actions}>
           <TouchableOpacity
             style={[styles.actionBtn, !hasLocation && styles.actionBtnDisabled]}
-            onPress={() => hasLocation && onFocusMap?.(vehicle)}
+            onPress={() => {
+              if (!hasLocation) return;
+              onFocusMap?.(vehicle);
+              announceVehicleFocus({
+                name: vehicle.name,
+                status: statusLabel(vehicle.status),
+                speed: vehicle.speed,
+                isOutsideFence: vehicle.isOutsideFence,
+              }).catch(() => undefined);
+            }}
             activeOpacity={0.7}
             hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
           >
@@ -129,6 +147,9 @@ const styles = StyleSheet.create({
     borderBottomColor: FLEET_COLORS.border,
     gap: 12,
   },
+  containerDisabled: {
+    opacity: 0.72,
+  },
   iconBox: {
     width: 40,
     height: 40,
@@ -152,6 +173,24 @@ const styles = StyleSheet.create({
   driver: {
     color: FLEET_COLORS.textSecondary,
     fontSize: 11,
+  },
+  disabledBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: FLEET_COLORS.textSecondary + '16',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 2,
+  },
+  disabledText: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   telemetryRow: {
     flexDirection: 'row',

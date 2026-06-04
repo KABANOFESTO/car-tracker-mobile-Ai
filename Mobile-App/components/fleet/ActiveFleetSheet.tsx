@@ -21,7 +21,7 @@ const SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.55;
 const SHEET_MIN_HEIGHT = 120;
 const HEADER_HEIGHT = 60;
 
-type FilterTab = 'all' | 'moving' | 'offline';
+type FilterTab = 'all' | 'moving' | 'idle' | 'offline' | 'disabled';
 
 interface Props {
   vehicles: Vehicle[];
@@ -74,7 +74,9 @@ export function ActiveFleetSheet({ vehicles, stats }: Props) {
   const filtered = vehicles.filter(v => {
     if (activeTab === 'all') return true;
     if (activeTab === 'moving') return v.status === 'moving';
-    if (activeTab === 'offline') return v.status === 'offline' || v.status === 'idle';
+    if (activeTab === 'idle') return v.status === 'idle';
+    if (activeTab === 'offline') return v.status === 'offline';
+    if (activeTab === 'disabled') return v.status === 'disabled';
     return true;
   });
 
@@ -112,12 +114,16 @@ export function ActiveFleetSheet({ vehicles, stats }: Props) {
             <View style={[styles.pillDot, { backgroundColor: FLEET_COLORS.textSecondary }]} />
             <Text style={styles.pillText}>{stats.offline} Offline</Text>
           </View>
+          <View style={styles.pill}>
+            <View style={[styles.pillDot, { backgroundColor: FLEET_COLORS.textSecondary }]} />
+            <Text style={styles.pillText}>{stats.disabled} Disabled</Text>
+          </View>
         </View>
       </View>
 
       {/* Tabs */}
       <View style={styles.tabBar}>
-        {(['all', 'moving', 'offline'] as FilterTab[]).map(tab => (
+        {(['all', 'moving', 'idle', 'offline', 'disabled'] as FilterTab[]).map(tab => (
           <TouchableOpacity
             key={tab}
             style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -126,7 +132,9 @@ export function ActiveFleetSheet({ vehicles, stats }: Props) {
             <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
               {tab === 'all' ? `All (${stats.total})` :
                tab === 'moving' ? `Moving (${stats.moving})` :
-               `Offline (${stats.offline + stats.idle})`}
+               tab === 'idle' ? `Idle (${stats.idle})` :
+               tab === 'offline' ? `Offline (${stats.offline})` :
+               `Disabled (${stats.disabled})`}
             </Text>
           </TouchableOpacity>
         ))}

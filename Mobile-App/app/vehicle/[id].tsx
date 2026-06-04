@@ -26,6 +26,7 @@ const ZONE_TYPES: GeofenceZoneType[] = ["home", "parking", "work", "restricted"]
 function statusColor(status: string) {
   if (status === "moving") return FLEET_COLORS.green;
   if (status === "idle") return FLEET_COLORS.orange;
+  if (status === "disabled") return FLEET_COLORS.textSecondary;
   return FLEET_COLORS.textSecondary;
 }
 
@@ -47,6 +48,7 @@ export default function VehicleDetailScreen() {
   const [driver, setDriver] = useState("");
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [togglingAccess, setTogglingAccess] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -147,6 +149,36 @@ export default function VehicleDetailScreen() {
     ]);
   }
 
+  function handleToggleAccess() {
+    if (!vehicle) return;
+    const nextActive = vehicle.active === false;
+
+    Alert.alert(
+      nextActive ? "Enable vehicle" : "Disable vehicle",
+      nextActive
+        ? "Enable this vehicle so it resumes live polling, mapping, and alerts."
+        : "Disable this vehicle to pause live polling while preserving its history.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: nextActive ? "Enable" : "Disable",
+          style: nextActive ? "default" : "destructive",
+          onPress: async () => {
+            setTogglingAccess(true);
+            try {
+              await updateVehicle(id!, { active: nextActive });
+              Alert.alert("Updated", nextActive ? "Vehicle enabled." : "Vehicle disabled.");
+            } catch {
+              Alert.alert("Error", "Failed to update vehicle access.");
+            } finally {
+              setTogglingAccess(false);
+            }
+          }
+        }
+      ]
+    );
+  }
+
   if (!vehicle) {
     return (
       <View style={styles.centerBox}>
@@ -157,7 +189,8 @@ export default function VehicleDetailScreen() {
   }
 
   const color = statusColor(vehicle.status);
-  const isLive = vehicle.status !== "offline";
+  const isLive = vehicle.active !== false && vehicle.status !== "offline" && vehicle.status !== "disabled";
+  const accessActive = vehicle.active !== false;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -179,6 +212,16 @@ export default function VehicleDetailScreen() {
             Last seen {vehicle.lastSeen === new Date(0).toISOString() ? "never" : new Date(vehicle.lastSeen).toLocaleTimeString()}
           </Text>
         </View>
+
+        {!accessActive ? (
+          <View style={styles.disabledNotice}>
+            <Ionicons name="pause-circle-outline" size={16} color={FLEET_COLORS.textSecondary} />
+            <View style={styles.disabledNoticeTextWrap}>
+              <Text style={styles.disabledNoticeTitle}>Vehicle disabled</Text>
+              <Text style={styles.disabledNoticeText}>Live telemetry is paused until you enable this vehicle again.</Text>
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.telemetryGrid}>
           <TelemetryItem icon="speedometer-outline" label="Speed" value={`${Math.round(vehicle.speed)} km/h`} />
@@ -242,6 +285,41 @@ export default function VehicleDetailScreen() {
               ? `Armed ${protectionState.armedAt ? new Date(protectionState.armedAt).toLocaleString() : ""}`
               : "Protection mode is currently disarmed"}
         </Text>
+      </View>
+
+      <Text style={styles.sectionLabel}>VEHICLE ACCESS</Text>
+      <View style={styles.accessCard}>
+        <View style={styles.accessRow}>
+          <View style={styles.accessTextWrap}>
+            <Text style={styles.accessTitle}>{accessActive ? "Vehicle enabled" : "Vehicle disabled"}</Text>
+            <Text style={styles.accessSubtitle}>
+              {accessActive
+                ? "Disable this vehicle to pause live polling and keep the vehicle hidden from active tracking."
+                : "Enable this vehicle to resume live polling, map visibility, and alerting."}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.accessBtn, !accessActive && styles.accessBtnInactive]}
+            onPress={handleToggleAccess}
+            disabled={togglingAccess}
+            activeOpacity={0.86}
+          >
+            {togglingAccess ? (
+              <ActivityIndicator color={accessActive ? FLEET_COLORS.orange : FLEET_COLORS.primary} size="small" />
+            ) : (
+              <>
+                <Ionicons
+                  name={accessActive ? "pause-circle-outline" : "checkmark-circle-outline"}
+                  size={18}
+                  color={accessActive ? FLEET_COLORS.orange : FLEET_COLORS.primary}
+                />
+                <Text style={[styles.accessBtnText, !accessActive && styles.accessBtnTextActive]}>
+                  {accessActive ? "Disable" : "Enable"}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.zoneHeader}>
@@ -469,6 +547,45 @@ const styles = StyleSheet.create({
   securityTitle: { color: FLEET_COLORS.textPrimary, fontSize: 15, fontWeight: "700" },
   securitySubtitle: { color: FLEET_COLORS.textSecondary, fontSize: 12, lineHeight: 18 },
   securityMeta: { color: FLEET_COLORS.textSecondary, fontSize: 12 },
+  disabledNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: FLEET_COLORS.background,
+    borderRadius: 12,
+    padding: 12
+  },
+  disabledNoticeTextWrap: { flex: 1, gap: 3 },
+  disabledNoticeTitle: { color: FLEET_COLORS.textPrimary, fontSize: 13, fontWeight: "700" },
+  disabledNoticeText: { color: FLEET_COLORS.textSecondary, fontSize: 12, lineHeight: 17 },
+  accessCard: {
+    backgroundColor: FLEET_COLORS.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    padding: 14
+  },
+  accessRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  accessTextWrap: { flex: 1, gap: 4 },
+  accessTitle: { color: FLEET_COLORS.textPrimary, fontSize: 15, fontWeight: "700" },
+  accessSubtitle: { color: FLEET_COLORS.textSecondary, fontSize: 12, lineHeight: 18 },
+  accessBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.orange + "55",
+    backgroundColor: FLEET_COLORS.orange + "10",
+    paddingHorizontal: 14,
+    paddingVertical: 11
+  },
+  accessBtnInactive: {
+    borderColor: FLEET_COLORS.primary + "55",
+    backgroundColor: FLEET_COLORS.primary + "10"
+  },
+  accessBtnText: { color: FLEET_COLORS.orange, fontSize: 14, fontWeight: "700" },
+  accessBtnTextActive: { color: FLEET_COLORS.primary },
   zoneHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   zoneAddBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   zoneAddText: { color: FLEET_COLORS.primary, fontSize: 12, fontWeight: "700" },

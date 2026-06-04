@@ -1,5 +1,5 @@
 export type VehicleType = 'Car' | 'Truck' | 'Van' | 'Motorcycle' | 'Bus' | 'Other';
-export type VehicleStatus = 'moving' | 'idle' | 'offline';
+export type VehicleStatus = 'moving' | 'idle' | 'offline' | 'disabled';
 export type GeofenceZoneType = 'home' | 'parking' | 'work' | 'restricted';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 export type AlertCategory = 'geofence' | 'security' | 'offline' | 'driving' | 'system';
@@ -13,6 +13,7 @@ export interface Vehicle {
   type: VehicleType;
   licensePlate: string;
   driver?: string;
+  active: boolean;
   status: VehicleStatus;
   speed: number;
   location: { latitude: number; longitude: number };
@@ -32,6 +33,7 @@ export interface PersistedVehicle {
   type: VehicleType;
   licensePlate: string;
   driver?: string;
+  active?: boolean;
 }
 
 export interface GeofenceConfig {
@@ -186,6 +188,7 @@ export interface VehicleStats {
   moving: number;
   idle: number;
   offline: number;
+  disabled: number;
   fenceBreachCount: number;
 }
 

@@ -19,6 +19,7 @@ import { FLEET_COLORS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useBackendSyncStatus } from '@/hooks/useBackendSyncStatus';
 import { useProfilePreferences } from '@/hooks/useProfilePreferences';
+import { useVoiceGuidance } from '@/hooks/useVoiceGuidance';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { ACCENT_THEME_PRESETS, PROFILE_AVATAR_PRESETS } from '@/services/profilePreferencesService';
 
@@ -75,6 +76,7 @@ export default function SettingsScreen() {
   const { user, backendConfigured, signOut } = useAuthSession();
   const syncStatus = useBackendSyncStatus();
   const { preferences, accent, setAvatarId, setAccentTheme } = useProfilePreferences(user?.id);
+  const { enabled: voiceEnabled, loading: voiceLoading, setEnabled: setVoiceEnabled, announceAlertVoice } = useVoiceGuidance();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -248,6 +250,49 @@ export default function SettingsScreen() {
             </View>
           </View>
           {syncStatus.lastError ? <Text style={styles.errorText}>{syncStatus.lastError}</Text> : null}
+        </View>
+
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Voice Guidance</Text>
+          <Text style={styles.sectionSubtitle}>
+            Professional spoken guidance for alerts, vehicle focus, and map actions. It helps the owner react faster without staring at the screen.
+          </Text>
+          <View style={styles.voiceRow}>
+            <View style={styles.voiceTextWrap}>
+              <Text style={styles.voiceLabel}>{voiceLoading ? 'Loading...' : voiceEnabled ? 'Enabled' : 'Disabled'}</Text>
+              <Text style={styles.voiceHint}>
+                {voiceEnabled
+                  ? 'The app will speak important alerts and map selections.'
+                  : 'No spoken guidance will be played until you turn it back on.'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.voiceToggle, voiceEnabled && styles.voiceToggleOn]}
+              onPress={() => setVoiceEnabled(!voiceEnabled)}
+              activeOpacity={0.85}
+              disabled={voiceLoading}
+            >
+              <Ionicons name={voiceEnabled ? 'volume-high' : 'volume-mute'} size={16} color={voiceEnabled ? '#fff' : FLEET_COLORS.primary} />
+              <Text style={[styles.voiceToggleText, voiceEnabled && styles.voiceToggleTextOn]}>
+                {voiceEnabled ? 'On' : 'Off'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={[styles.voicePreviewBtn, { borderColor: accent.primary + '55', backgroundColor: accent.primary + '12' }]}
+            onPress={() =>
+              announceAlertVoice({
+                title: 'Voice guidance test',
+                vehicleName: user?.name ?? 'Fleet owner',
+                description: 'The app is ready to speak alerts, map selections, and trip replay moments.',
+                severity: 'info',
+              }).catch(() => undefined)
+            }
+            activeOpacity={0.85}
+          >
+            <Ionicons name="mic-outline" size={16} color={accent.primary} />
+            <Text style={[styles.voicePreviewText, { color: accent.primary }]}>Play test voice</Text>
+          </TouchableOpacity>
         </View>
 
         {user?.role === 'admin' ? (
@@ -599,6 +644,62 @@ const styles = StyleSheet.create({
     color: FLEET_COLORS.orange,
     fontSize: 12,
     lineHeight: 18,
+  },
+  voiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  voiceTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  voiceLabel: {
+    color: FLEET_COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  voiceHint: {
+    color: FLEET_COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  voiceToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: FLEET_COLORS.border,
+    backgroundColor: FLEET_COLORS.background,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  voiceToggleOn: {
+    backgroundColor: FLEET_COLORS.primary,
+    borderColor: FLEET_COLORS.primary,
+  },
+  voiceToggleText: {
+    color: FLEET_COLORS.primary,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  voiceToggleTextOn: {
+    color: '#FFFFFF',
+  },
+  voicePreviewBtn: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+  },
+  voicePreviewText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   logoutButton: {
     flexDirection: 'row',

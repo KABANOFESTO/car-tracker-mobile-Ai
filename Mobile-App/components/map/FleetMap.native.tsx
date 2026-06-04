@@ -18,6 +18,7 @@ import MapView, {
 
 import { FLEET_COLORS } from '@/constants/theme';
 import { GeofenceConfig, Vehicle } from '@/constants/types';
+import { announceVehicleFocus } from '@/services/voiceAssistantService';
 import { VehicleMarker } from './VehicleMarker.native';
 
 export interface FleetMapRef {
@@ -129,6 +130,7 @@ function buildInitialRegion(
 }
 
 function statusTone(vehicle: Vehicle) {
+  if (vehicle.active === false || vehicle.status === 'disabled') return FLEET_COLORS.textSecondary;
   if (vehicle.isOutsideFence) return FLEET_COLORS.orange;
   if (vehicle.status === 'moving') return FLEET_COLORS.green;
   if (vehicle.status === 'idle') return '#F7B955';
@@ -136,6 +138,7 @@ function statusTone(vehicle: Vehicle) {
 }
 
 function statusLabel(vehicle: Vehicle) {
+  if (vehicle.active === false || vehicle.status === 'disabled') return 'Disabled';
   if (vehicle.isOutsideFence) return 'Outside fence';
   if (vehicle.status === 'moving') return 'Moving';
   if (vehicle.status === 'idle') return 'Idle';
@@ -164,7 +167,12 @@ export const FleetMap = forwardRef<FleetMapRef, Props>(
       () => vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? null,
       [selectedVehicleId, vehicles],
     );
-    const activeVehicle = selectedVehicle ?? liveVehicles.find((vehicle) => vehicle.status === 'moving') ?? liveVehicles[0] ?? null;
+    const activeVehicle =
+      selectedVehicle ??
+      liveVehicles.find((vehicle) => vehicle.active !== false && vehicle.status === 'moving') ??
+      liveVehicles.find((vehicle) => vehicle.active !== false) ??
+      liveVehicles[0] ??
+      null;
     const geofenceCenter =
       geofenceConfig && geofenceConfig.geofenceLat !== 0 && geofenceConfig.geofenceLng !== 0
         ? { latitude: geofenceConfig.geofenceLat, longitude: geofenceConfig.geofenceLng }
@@ -299,6 +307,12 @@ export const FleetMap = forwardRef<FleetMapRef, Props>(
                   setSelectedVehicleId(vehicle.id);
                   onVehiclePress?.(vehicle);
                   animateToCoordinate(vehicle.location, vehicle.status === 'moving' ? 0.024 : 0.04);
+                  announceVehicleFocus({
+                    name: vehicle.name,
+                    status: statusLabel(vehicle),
+                    speed: vehicle.speed,
+                    isOutsideFence: vehicle.isOutsideFence,
+                  }).catch(() => undefined);
                 }}
               >
                 <VehicleMarker vehicle={vehicle} selected={isSelected} />

@@ -7,6 +7,7 @@ import { FLEET_COLORS } from '@/constants/theme';
 import { TripReplay } from '@/constants/types';
 import { TripReplayMap } from '@/components/replay/TripReplayMap';
 import { getTripReplay } from '@/services/tripService';
+import { announceReplayPoint } from '@/services/voiceAssistantService';
 
 export default function TripReplayScreen() {
   const params = useLocalSearchParams<{ vehicleId: string; date: string }>();
@@ -88,6 +89,15 @@ export default function TripReplayScreen() {
             onPointPress={(index) => {
               setPlaying(false);
               setActiveIndex(index);
+              const point = replay.points[index];
+              if (point) {
+                announceReplayPoint({
+                  vehicleName: point.vehicleName,
+                  timestamp: point.timestamp,
+                  speed: point.speed,
+                  outsideFence: point.isOutsideFence,
+                }).catch(() => undefined);
+              }
             }}
           />
 

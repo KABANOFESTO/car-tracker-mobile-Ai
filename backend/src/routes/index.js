@@ -12,7 +12,7 @@ const {
   refreshController,
   resetPasswordController,
 } = require('../controllers/auth.controller');
-const { listUsersController, createUserController, updateUserController } = require('../controllers/user.controller');
+const { listUsersController, createUserController, updateUserController, deleteUserController } = require('../controllers/user.controller');
 const { listRequestLogsController, listAuditLogsController, listErrorLogsController } = require('../controllers/log.controller');
 const { requireAuthenticatedMobileClient, requireJwtAuth, requireRole } = require('../middleware/auth.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
@@ -53,6 +53,7 @@ router.get('/api/fleet-state', requireJwtAuth, requireRole('admin', 'owner'), as
 router.get('/api/admin/users', requireJwtAuth, requireRole('admin'), asyncHandler(listUsersController));
 router.post('/api/admin/users', requireJwtAuth, requireRole('admin'), validateCreateUserPayload, asyncHandler(createUserController));
 router.patch('/api/admin/users/:userId', requireJwtAuth, requireRole('admin'), validateUpdateUserPayload, asyncHandler(updateUserController));
+router.delete('/api/admin/users/:userId', requireJwtAuth, requireRole('admin'), asyncHandler(deleteUserController));
 router.get('/api/admin/logs/requests', requireJwtAuth, requireRole('admin'), asyncHandler(listRequestLogsController));
 router.get('/api/admin/logs/audit', requireJwtAuth, requireRole('admin'), asyncHandler(listAuditLogsController));
 router.get('/api/admin/logs/errors', requireJwtAuth, requireRole('admin'), asyncHandler(listErrorLogsController));

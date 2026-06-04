@@ -41,6 +41,7 @@ async function hydrateOwnerData() {
       type: vehicle.type as any,
       licensePlate: vehicle.licensePlate,
       driver: vehicle.driver,
+      active: vehicle.active ?? true,
     }))
   );
   await replaceGeofenceZones((state.zones || []) as any);

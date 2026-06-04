@@ -5,6 +5,7 @@ import MapView, { Callout, Marker, Polyline, PROVIDER_GOOGLE, Region } from 'rea
 
 import { FLEET_COLORS } from '@/constants/theme';
 import { TripPoint } from '@/constants/types';
+import { announceReplayPoint } from '@/services/voiceAssistantService';
 
 interface Props {
   points: TripPoint[];
@@ -108,11 +109,19 @@ export function TripReplayMap({ points, activePoint, onPointPress }: Props) {
           const tone = point.isOutsideFence ? FLEET_COLORS.orange : isActive ? FLEET_COLORS.primary : FLEET_COLORS.green;
 
           return (
-            <Marker
+              <Marker
               key={point.id}
               coordinate={{ latitude: point.latitude, longitude: point.longitude }}
               anchor={{ x: 0.5, y: 0.5 }}
-              onPress={() => onPointPress?.(index)}
+              onPress={() => {
+                onPointPress?.(index);
+                announceReplayPoint({
+                  vehicleName: point.vehicleName,
+                  timestamp: point.timestamp,
+                  speed: point.speed,
+                  outsideFence: point.isOutsideFence,
+                }).catch(() => undefined);
+              }}
             >
               <View style={[styles.pointOuter, isActive && styles.pointOuterActive]}>
                 <View style={[styles.pointInner, { backgroundColor: tone }]} />

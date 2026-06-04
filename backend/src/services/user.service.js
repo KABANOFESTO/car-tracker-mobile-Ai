@@ -1,5 +1,9 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const FleetState = require('../models/FleetState');
+const RefreshToken = require('../models/RefreshToken');
+const PasswordResetToken = require('../models/PasswordResetToken');
+const PushToken = require('../models/PushToken');
 const { AppError } = require('../utils/errors');
 const { isEmailConfigured, sendProvisioningEmail } = require('./email.service');
 const { generateTemporaryPassword } = require('./password.service');
@@ -75,10 +79,28 @@ async function createUser(payload) {
   };
 }
 
-async function updateUser(userId, payload) {
+async function updateUser(userId, payload, actorUserId) {
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError(404, 'User not found');
+  }
+
+  if (user._id.toString() === String(actorUserId) && payload.active === false) {
+    throw new AppError(400, 'You cannot disable your own account');
+  }
+
+  const nextRole = payload.role ?? user.role;
+  const nextActive = payload.active ?? user.active;
+  const wouldRemainAdmin = nextRole === 'admin' && nextActive !== false;
+  if (user.role === 'admin' && !wouldRemainAdmin) {
+    const otherActiveAdmins = await User.countDocuments({
+      role: 'admin',
+      active: true,
+      _id: { $ne: user._id },
+    });
+    if (otherActiveAdmins === 0) {
+      throw new AppError(400, 'At least one active admin must remain');
+    }
   }
 
   if (payload.name != null) user.name = payload.name.trim();
@@ -93,4 +115,37 @@ async function updateUser(userId, payload) {
   return toPublicUser(user);
 }
 
-module.exports = { listUsers, createUser, updateUser };
+async function deleteUser(userId, actorUserId) {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(404, 'User not found');
+  }
+
+  if (user._id.toString() === String(actorUserId)) {
+    throw new AppError(400, 'You cannot delete your own account');
+  }
+
+  if (user.role === 'admin') {
+    const otherActiveAdmins = await User.countDocuments({
+      role: 'admin',
+      active: true,
+      _id: { $ne: user._id },
+    });
+    if (otherActiveAdmins === 0) {
+      throw new AppError(400, 'At least one active admin must remain');
+    }
+  }
+
+  const deletedUser = toPublicUser(user);
+  await Promise.all([
+    RefreshToken.deleteMany({ userId: user._id.toString() }),
+    PasswordResetToken.deleteMany({ userId: user._id.toString() }),
+    PushToken.deleteMany({ ownerUserId: user._id.toString() }),
+    FleetState.deleteMany({ ownerUserId: user._id.toString() }),
+    User.deleteOne({ _id: user._id }),
+  ]);
+
+  return deletedUser;
+}
+
+module.exports = { listUsers, createUser, updateUser, deleteUser };

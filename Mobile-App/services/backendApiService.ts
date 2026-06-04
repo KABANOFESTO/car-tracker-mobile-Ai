@@ -196,6 +196,7 @@ export async function fetchBackendFleetState(): Promise<{
           type: string;
           licensePlate: string;
           driver?: string;
+          active?: boolean;
         }[];
         zones: any[];
         protectionStates: any[];
@@ -247,6 +248,13 @@ export async function updateAdminUser(
     method: 'PATCH',
     authMode: 'jwt',
     body: payload,
+  });
+}
+
+export async function deleteAdminUser(userId: string) {
+  return requestJson<{ ok: true; user: AuthUser }>(`/api/admin/users/${userId}`, {
+    method: 'DELETE',
+    authMode: 'jwt',
   });
 }
 

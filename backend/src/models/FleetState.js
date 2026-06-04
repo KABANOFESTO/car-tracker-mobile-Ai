@@ -9,6 +9,7 @@ const vehicleSchema = new Schema(
     type: { type: String, required: true },
     licensePlate: { type: String, required: true },
     driver: { type: String, default: '' },
+    active: { type: Boolean, default: true },
     status: { type: String, default: 'offline' },
     speed: { type: Number, default: 0 },
     location: {

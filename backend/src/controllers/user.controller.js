@@ -1,4 +1,4 @@
-const { listUsers, createUser, updateUser } = require('../services/user.service');
+const { listUsers, createUser, updateUser, deleteUser } = require('../services/user.service');
 const { writeAuditLog } = require('../services/audit-log.service');
 
 async function listUsersController(request, response) {
@@ -22,7 +22,7 @@ async function createUserController(request, response) {
 }
 
 async function updateUserController(request, response) {
-  const user = await updateUser(request.params.userId, request.body || {});
+  const user = await updateUser(request.params.userId, request.body || {}, request.user._id.toString());
   await writeAuditLog({
     actorUserId: request.user._id.toString(),
     actorEmail: request.user.email,
@@ -35,4 +35,18 @@ async function updateUserController(request, response) {
   response.json({ ok: true, user });
 }
 
-module.exports = { listUsersController, createUserController, updateUserController };
+async function deleteUserController(request, response) {
+  const deletedUser = await deleteUser(request.params.userId, request.user._id.toString());
+  await writeAuditLog({
+    actorUserId: request.user._id.toString(),
+    actorEmail: request.user.email,
+    action: 'user.delete',
+    targetType: 'user',
+    targetId: deletedUser.id,
+    ip: request.ip,
+    metadata: { role: deletedUser.role, active: deletedUser.active },
+  });
+  response.json({ ok: true, user: deletedUser });
+}
+
+module.exports = { listUsersController, createUserController, updateUserController, deleteUserController };

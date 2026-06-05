@@ -23,6 +23,7 @@
           "apiKey": "AIzaSyA7vvqRRnfB4eYWOPzap9QaVweabA6YFgg"
         }
       },
+      "versionCode": 2,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"

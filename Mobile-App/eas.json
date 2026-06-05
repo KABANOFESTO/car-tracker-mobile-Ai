@@ -1,13 +1,14 @@
 {
   "cli": {
     "version": "20.0.0",
-    "appVersionSource": "local"
+    "appVersionSource": "remote"
   },
   "build": {
     "preview": {
       "android": {
         "buildType": "apk"
       },
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_THINGSPEAK_BASE_URL": "https://api.thingspeak.com",
         "EXPO_PUBLIC_THINGSPEAK_POLL_INTERVAL_MS": "15000",
@@ -21,15 +22,18 @@
     "preview2": {
       "android": {
         "gradleCommand": ":app:assembleRelease"
-      }
+      },
+      "autoIncrement": true
     },
     "preview3": {
       "developmentClient": true
     },
     "preview4": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "autoIncrement": true
     },
     "production": {
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_THINGSPEAK_BASE_URL": "https://api.thingspeak.com",
         "EXPO_PUBLIC_THINGSPEAK_POLL_INTERVAL_MS": "15000",

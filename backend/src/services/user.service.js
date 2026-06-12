@@ -48,21 +48,31 @@ async function createUser(payload) {
   let credentialDelivery;
 
   if (isEmailConfigured()) {
-    await sendProvisioningEmail({
-      name: user.name,
-      email: user.email,
-      password: temporaryPassword,
-      role: user.role,
-    });
+    try {
+      await sendProvisioningEmail({
+        name: user.name,
+        email: user.email,
+        password: temporaryPassword,
+        role: user.role,
+      });
 
-    user.onboardingEmailSentAt = new Date();
-    await user.save();
+      user.onboardingEmailSentAt = new Date();
+      await user.save();
 
-    credentialDelivery = {
-      recipient: user.email,
-      sentAt: user.onboardingEmailSentAt.toISOString(),
-      method: 'smtp',
-    };
+      credentialDelivery = {
+        recipient: user.email,
+        sentAt: user.onboardingEmailSentAt.toISOString(),
+        method: 'smtp',
+      };
+    } catch (error) {
+      console.error('[user.create] provisioning email failed', error);
+      credentialDelivery = {
+        recipient: user.email,
+        sentAt: new Date().toISOString(),
+        method: 'manual',
+        warning: 'SMTP delivery failed. Share the temporary credentials manually and check backend SMTP settings.',
+      };
+    }
   } else {
     credentialDelivery = {
       recipient: user.email,

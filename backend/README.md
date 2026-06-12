@@ -35,8 +35,19 @@ SMTP_USER=
 SMTP_PASS=
 SMTP_FROM_EMAIL=
 SMTP_FROM_NAME=FleetPulse
+SMTP_TIMEOUT_MS=10000
 APP_LOGIN_URL=http://localhost:8081/login
 ```
+
+If you use Gmail, the common setup is:
+
+- `SMTP_HOST=smtp.gmail.com`
+- `SMTP_PORT=465`
+- `SMTP_SECURE=true`
+- `SMTP_USER=` your full Gmail address
+- `SMTP_PASS=` your Gmail app password
+
+Use `SMTP_PASS` as the value only. Do not include the label, colon, or extra punctuation.
 
 ## Start
 

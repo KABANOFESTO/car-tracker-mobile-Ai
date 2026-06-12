@@ -30,6 +30,7 @@ const env = {
   smtpPass: process.env.SMTP_PASS || '',
   smtpFromEmail: process.env.SMTP_FROM_EMAIL || '',
   smtpFromName: process.env.SMTP_FROM_NAME || 'FleetPulse',
+  smtpTimeoutMs: Number(process.env.SMTP_TIMEOUT_MS || 10000),
   appLoginUrl: process.env.APP_LOGIN_URL || 'http://localhost:8081/login',
 };
 
